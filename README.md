@@ -90,7 +90,8 @@ the ones that you are most likely to find useful. `munin` delivers only the last
 processing far more than that under the hood.
 
 We use `swim-cli` commands in the following examples for simplicity; these may
-just as easily be translated into downlinks.
+just as easily be translated into downlinks. Be sure to replace
+`warp://localhost:9001` with the host under which your `munin` instance runs.
 
 ### Statuses of all posts
 
