@@ -3,9 +3,9 @@
 A _stateful_, _distributable_, _real-time_ (aside from some mandated polling),
 _highly observable_ data-streaming web service that _continuously_ analyzes
 r/WhatsThisBird activity. `munin`'s primary responsibility within the overall
-`FileTheseBirds` application is to generate community-vouched deductions to
-be persisted to a database, but it also doubles as a Reddit bot that leaves a
-[comment trail](https://reddit.com/user/FileTheseBirdsBot/comments) of its
+`FileTheseBirds` application is to generate community-vouched deductions to be
+persisted to a database, but it also doubles as a [Reddit bot that leaves a
+comment trail](https://reddit.com/user/FileTheseBirdsBot/comments) of its
 internal state.
 
 `munin`'s runtime is a [Swim server](https://github.com/swimos/swim), and we
