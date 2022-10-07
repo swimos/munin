@@ -1,0 +1,31 @@
+# @kernel(class: 'swim.store.db.DbStoreKernel')
+
+munin: @fabric {
+  @plane(class: "filethesebirds.munin.swim.MuninPlane")
+  # Singletons
+  @node {
+    uri: "/commentsFetch"
+    @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")
+  }
+  @node {
+    uri: "/submissionsFetch"
+    @agent(class: "filethesebirds.munin.swim.SubmissionsFetchAgent")
+  }
+  @node {
+    uri: "/throttledPublish"
+    @agent(class: "filethesebirds.munin.swim.ThrottledPublishingAgent")
+  }
+  @node {
+    uri: "/submissions"
+    @agent(class: "filethesebirds.munin.swim.SubmissionsAgent")
+  }
+  # Dynamics
+  @node {
+    pattern: "/submission/:id"
+    @agent(class: "filethesebirds.munin.swim.SubmissionAgent")
+  }
+}
+
+@web(port: 9001) {
+  space: "munin"
+}
