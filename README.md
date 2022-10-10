@@ -68,15 +68,27 @@ on default Windows shells.
 
 ## Run Instructions
 
-Gradle provides a developer-convenient `run` command, but running projects as
-Gradle tasks incurs noticeable overhead. The "right" way to run `munin` is to
+### Option 1: `gradle run`
+
+or `./gradlew run` / `.\gradlew.bat run` if using the wrapper scripts. Incurs
+overhead due to management by a Gradle daemon.
+
+### Option 2: `gradle build` with command line runner
+
+Prerequisite: a way to either untar or unzip an archive
 
 1. Run one of the aforementioned `build` commands
 2. Unpack your distributable of choice from `build/distributions`, (either the
 tarball or the .zip)
 3. Run the appropriate script for your device from `$UNPACK-DIR/bin`.
 
-TODO: run as (journaled) service; dockerize
+### Option 3: journaled service (Linux only)
+
+Prerequisites: `dpkg`, `service`
+
+1. `gradle packageDeb` (or a wrapper script variant)
+2. `sudo dpkg -i build/distributions/munin-$VERSION_all.deb`
+3. `sudo service munin start`
 
 ### Configurations
 
@@ -107,7 +119,7 @@ flattened union of its info and (if it's nonempty) in-progress answer.
 ...
 ```
 
-### Unanswered(/answered/unreviewed/reviewed) submissions
+### Unanswered(/answered/unreviewed/reviewed) submission statuses
 
 ```
 % swim-cli sync -h warp://localhost:9001 -n /submissions -l unanswered
@@ -120,7 +132,7 @@ flattened union of its info and (if it's nonempty) in-progress answer.
 
 The `answered`, `unreviewed`, and `reviewed` lanes are similarly available.
 
-### No-fluff answers for all submissions
+### Just answers (including empty ones) for all submissions
 
 ```
 % swim-cli sync -h warp://localhost:9001 -n /throttledPublish -l answers 
@@ -132,10 +144,12 @@ The `answered`, `unreviewed`, and `reviewed` lanes are similarly available.
 ...
 ```
 
-### Info about one submission
+---
 
 **NOTE:** All subsequent commands will return _nothing_ if the submission being inspected
 is over 36 hours old.
+
+### Info about one submission
 
 ```
 % swim-cli sync -h warp://localhost:9001 -n /submission/y0drr3 -l info
@@ -143,7 +157,7 @@ is over 36 hours old.
 @submission{id:y0drr3,title:"Bird ID help! Northern Illinois",location:"north america",thumbnail:"https://b.thumbs.redditmedia.com/dlK6Ls1MWwjBIYsfby4T4vXbw7cVj0oXAbJW9EkO2Ac.jpg",createdUtc:1665405563,karma:32,commentCount:8}
 ```
 
-### In-progress answer for one submission
+### Answer for one submission
 
 ```
 % swim-cli sync -h warp://localhost:9001 -n /submission/y0drr3 -l answer
@@ -151,7 +165,7 @@ is over 36 hours old.
 @answer{taxa:{eursta,rebwoo}}
 ```
 
-### Status of a submission
+### Status of one submission
 
 ```
 % swim-cli sync -h warp://localhost:9001 -n /submission/y0drr3 -l status
