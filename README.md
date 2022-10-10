@@ -95,6 +95,9 @@ just as easily be translated into downlinks. Be sure to replace
 
 ### Statuses of all posts
 
+In the context of this API, the "status" of a submission is defined to be a
+flattened union of its info and (if it's nonempty) in-progress answer.
+
 ```
 % swim-cli sync -h warp://localhost:9001 -n /submissions -l statuses
 
@@ -127,4 +130,31 @@ The `answered`, `unreviewed`, and `reviewed` lanes are similarly available.
 @update(key:"/submission/xxldl3")@answer{taxa:{grbher,bcnher,greegr}}
 @update(key:"/submission/xxlwlz")@answer{taxa:{babwar},reviewers:{broken_faaace}}
 ...
+```
+
+### Info about one submission
+
+All subsequent commands will return _nothing_ if the submission being inspected
+is over 36 hours old.
+
+```
+% swim-cli sync -h warp://localhost:9001 -n /submission/y0drr3 -l info
+
+@submission{id:y0drr3,title:"Bird ID help! Northern Illinois",location:"north america",thumbnail:"https://b.thumbs.redditmedia.com/dlK6Ls1MWwjBIYsfby4T4vXbw7cVj0oXAbJW9EkO2Ac.jpg",createdUtc:1665405563,karma:32,commentCount:8}
+```
+
+### In-progress answer for one submission
+
+```
+% swim-cli sync -h warp://localhost:9001 -n /submission/y0drr3 -l answer
+
+@answer{taxa:{eursta,rebwoo}}
+```
+
+### Status of a submission
+
+```
+% swim-cli sync -h warp://localhost:9001 -n /submission/y0drr3 -l status
+
+@status{id:y0drr3,title:"Bird ID help! Northern Illinois",location:"north america",thumbnail:"https://b.thumbs.redditmedia.com/dlK6Ls1MWwjBIYsfby4T4vXbw7cVj0oXAbJW9EkO2Ac.jpg",createdUtc:1665405563,karma:31,commentCount:8,taxa:{eursta,rebwoo},reviewers:}
 ```
