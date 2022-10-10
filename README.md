@@ -134,7 +134,7 @@ The `answered`, `unreviewed`, and `reviewed` lanes are similarly available.
 
 ### Info about one submission
 
-All subsequent commands will return _nothing_ if the submission being inspected
+**NOTE:** All subsequent commands will return _nothing_ if the submission being inspected
 is over 36 hours old.
 
 ```
