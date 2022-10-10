@@ -172,3 +172,14 @@ is over 36 hours old.
 
 @status{id:y0drr3,title:"Bird ID help! Northern Illinois",location:"north america",thumbnail:"https://b.thumbs.redditmedia.com/dlK6Ls1MWwjBIYsfby4T4vXbw7cVj0oXAbJW9EkO2Ac.jpg",createdUtc:1665405563,karma:31,commentCount:8,taxa:{eursta,rebwoo},reviewers:}
 ```
+
+### Nonempty motions (i.e. answer contributors) for a submission
+
+```
+% swim-cli sync -h warp://localhost:9001 -n /submission/xvtxqc -l motions
+
+@update(key:{1664927079,ir33kwk})@review(brohitbrose){plusTaxa:{leasan,y00496}}
+@update(key:{1664997555,ir6sjgg})@review(haematopuspalliatus)
+@update(key:{1664997652,ir6ssw9})@review(brohitbrose)
+@update(key:{1665007491,ir7i1d4})@review(haematopuspalliatus){overrideTaxa:{leasan,semsan}}
+```
