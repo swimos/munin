@@ -114,7 +114,7 @@ public class SubmissionAgent extends AbstractAgent {
         }
       });
 
-  // Lane lifecycle
+  // Agent lifecycle
 
   @Override
   public void didStart() {

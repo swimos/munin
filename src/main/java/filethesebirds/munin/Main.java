@@ -18,7 +18,6 @@ import filethesebirds.munin.swim.Coalesce;
 import filethesebirds.munin.swim.MuninPolicy;
 import filethesebirds.munin.swim.Shared;
 import swim.api.plane.PlaneContext;
-import swim.api.space.Space;
 import swim.kernel.Kernel;
 import swim.server.ServerLoader;
 
@@ -32,8 +31,8 @@ public class Main {
     // Initialize Swim kernel
     final Kernel kernel = ServerLoader.loadServer();
     final PlaneContext plane = (PlaneContext) kernel.getSpace("munin");
-    plane.setPolicy(new MuninPolicy());
     kernel.start();
+    plane.setPolicy(new MuninPolicy(plane));
     System.out.println("Running munin...");
     kernel.run();
 

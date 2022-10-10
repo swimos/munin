@@ -1,0 +1,13 @@
+[Unit]
+Description=FileTheseBirds/munin
+Wants=network.target
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/munin
+ExecStart=/opt/munin/bin/munin
+User=munin
+Restart=on-failure
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

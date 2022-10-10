@@ -14,31 +14,32 @@
 
 package filethesebirds.munin.digest;
 
-import filethesebirds.munin.Main;
+import filethesebirds.munin.util.ConfigUtils;
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 public final class Users {
 
   private static final Set<String> REVIEWERS = new HashSet<>(63);
   static {
-    loadSetFromResource(REVIEWERS, "reviewers");
+    loadSet(REVIEWERS, "reviewers");
   }
 
   private static final String PUBLISHER = "filethesebirdsbot";
 
   private static final Set<String> NONPARTICIPANTS = new HashSet<>();
   static {
-    loadSetFromResource(NONPARTICIPANTS, "nonparticipants");
+    loadSet(NONPARTICIPANTS, "nonparticipants");
   }
 
-  private static void loadSetFromResource(Set<String> set, String name) {
-    try (BufferedReader br = new BufferedReader(
-        new InputStreamReader(Objects.requireNonNull(
-            Main.class.getResourceAsStream("/" + name + ".txt"))))) {
+  private static void loadSet(Set<String> set, String name) {
+    try (InputStream is = ConfigUtils.openConfigFile(System.getProperty(name + ".conf"),
+            "/" + name + ".txt");
+        InputStreamReader isr = new InputStreamReader(is);
+        BufferedReader br = new BufferedReader(isr)) {
       String line;
       while ((line = br.readLine()) != null) {
         if (isValidUsername(line)) {

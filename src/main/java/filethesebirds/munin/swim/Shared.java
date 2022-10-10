@@ -14,7 +14,7 @@
 
 package filethesebirds.munin.swim;
 
-import filethesebirds.munin.Main;
+import filethesebirds.munin.util.ConfigUtils;
 import filethesebirds.munin.connect.ebird.EBirdClient;
 import filethesebirds.munin.connect.reddit.RedditApiException;
 import filethesebirds.munin.connect.reddit.RedditClient;
@@ -50,16 +50,18 @@ public class Shared {
     if (Shared.eBirdClient != null) {
       throw new IllegalStateException("Multiple eBird client loading forbidden");
     }
-    Shared.eBirdClient = EBirdClient.fromResource(httpClient(), Main.class,
-        "/ebird-config.properties");
+    Shared.eBirdClient = EBirdClient.fromStream(httpClient(),
+        ConfigUtils.openConfigFile(System.getProperty("ebird.conf"),
+            "/ebird-config.properties"));
   }
 
   public static void loadRedditClient() throws RedditApiException {
     if (Shared.redditClient != null) {
       throw new IllegalStateException("Multiple Reddit client loading forbidden");
     }
-    Shared.redditClient = RedditClient.fromResource(httpClient(), Main.class,
-        "/reddit-config.properties");
+    Shared.redditClient = RedditClient.fromStream(httpClient(),
+        ConfigUtils.openConfigFile(System.getProperty("reddit.conf"),
+            "/reddit-config.properties"));
   }
 
 }

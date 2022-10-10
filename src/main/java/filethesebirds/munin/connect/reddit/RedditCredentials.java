@@ -14,7 +14,7 @@
 
 package filethesebirds.munin.connect.reddit;
 
-import java.io.IOException;
+import filethesebirds.munin.util.ConfigUtils;
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -43,15 +43,8 @@ public class RedditCredentials {
         props.getProperty("userAgent", ""));
   }
 
-  public static RedditCredentials fromResource(Class<?> resourceClass, String resourcePath)
-      throws RuntimeException {
-    final Properties props = new Properties();
-    try (InputStream is = resourceClass.getResourceAsStream(resourcePath)) {
-      props.load(is);
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to load " + resourcePath, e);
-    }
-    return fromProperties(props);
+  public static RedditCredentials fromStream(InputStream stream) {
+    return ConfigUtils.credentialsFromStream(stream, RedditCredentials::fromProperties);
   }
 
   public String clientId() {

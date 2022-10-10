@@ -17,6 +17,7 @@ package filethesebirds.munin.connect.reddit;
 import filethesebirds.munin.connect.http.HttpUtils;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Submission;
+import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -38,10 +39,9 @@ public class RedditClient {
     refreshToken(this.grant.currentExpiry());
   }
 
-  public static RedditClient fromResource(HttpClient executor,
-        Class<?> resourceClass, String resourcePath)
+  public static RedditClient fromStream(HttpClient executor, InputStream stream)
       throws RedditApiException {
-    final RedditCredentials credentials = RedditCredentials.fromResource(resourceClass, resourcePath);
+    final RedditCredentials credentials = RedditCredentials.fromStream(stream);
     return new RedditClient(executor, new RedditPasswordGrantProvider(credentials));
   }
 
@@ -70,9 +70,6 @@ public class RedditClient {
     if (responseIsSuccessful(response)) {
       return response;
     }
-    System.out.println("req headers: " + request.headers());
-    System.out.println("res headers: " + response.headers());
-    System.out.println("res body: " + response.body());
     if (!responseIsUnauthorized(response)) {
       throw new RedditApiException("Problematic API response with code " + response.statusCode()
           + ". Headers: " + response.headers());
@@ -172,23 +169,11 @@ public class RedditClient {
         BodyHandlers.ofInputStream()));
   }
 
-  static int sup = (int) (Math.random() * 19202312);
-
-  public Comment publishAnyCommentDry(String parent, String body) {
-    return new Comment(Integer.toString(sup++, 36), System.currentTimeMillis() / 1000,
-        parent, "filethesebirdsbot", body, "");
-  }
-
   public RedditResponse<Comment> publishEditEditusertext(String id, String body) throws RedditApiException {
     return Comment.commentPublishCrux(makeApiCall(() ->
             RedditApi.postEditEditusertext(id, body, this.grant.currentToken(),
                 this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
-  }
-
-  public Comment publishEditEditusertextDry(String id, String body) {
-    return new Comment(Integer.toString(sup++, 36), System.currentTimeMillis() / 1000,
-        id, "filethesebirdsbot", body, "");
   }
 
 }

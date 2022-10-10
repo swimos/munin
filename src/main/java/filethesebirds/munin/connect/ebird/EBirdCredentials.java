@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.connect.ebird;
 
+import filethesebirds.munin.util.ConfigUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -28,6 +29,10 @@ public class EBirdCredentials {
 
   public static EBirdCredentials fromProperties(Properties props) {
     return new EBirdCredentials(props.getProperty("userAgent", ""));
+  }
+
+  public static EBirdCredentials fromStream(InputStream stream) {
+    return ConfigUtils.credentialsFromStream(stream, EBirdCredentials::fromProperties);
   }
 
   public static EBirdCredentials fromResource(Class<?> resourceClass, String resourcePath)

@@ -37,7 +37,7 @@ import swim.structure.Value;
  */
 public class ThrottledPublishingAgent extends AbstractAgent {
 
-  private static final long PUBLISH_PERIOD_MILLIS = 30L * 1000;
+  private static final long PUBLISH_PERIOD_MILLIS = 10L * 1000;
 
   @SwimLane("answers")
   private JoinValueLane<String, Value> answers = joinValueLane()

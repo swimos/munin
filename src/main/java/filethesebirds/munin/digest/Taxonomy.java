@@ -14,20 +14,21 @@
 
 package filethesebirds.munin.digest;
 
-import filethesebirds.munin.Main;
+import filethesebirds.munin.util.ConfigUtils;
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public final class Taxonomy {
 
   private static final Map<String, String> TAXONOMY = new HashMap<>(32000);
   static {
-    try (BufferedReader br = new BufferedReader(
-        new InputStreamReader(Objects.requireNonNull(
-            Main.class.getResourceAsStream("/ebird-taxa.csv"))))) {
+    try (InputStream is = ConfigUtils.openConfigFile(System.getProperty("taxonomy.conf"),
+            "/ebird-taxa.csv");
+        InputStreamReader isr = new InputStreamReader(is);
+        BufferedReader br = new BufferedReader(isr)) {
       String line;
       while ((line = br.readLine()) != null) {
         final String[] split = line.split(",");

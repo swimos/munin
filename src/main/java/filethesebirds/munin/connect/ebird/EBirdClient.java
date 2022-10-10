@@ -15,6 +15,7 @@
 package filethesebirds.munin.connect.ebird;
 
 import filethesebirds.munin.connect.http.HttpUtils;
+import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -31,10 +32,8 @@ public class EBirdClient {
     this.userAgent = userAgent;
   }
 
-  public static EBirdClient fromResource(HttpClient executor,
-                                         Class<?> resourceClass, String resourcePath) {
-    return new EBirdClient(executor,
-        EBirdCredentials.fromResource(resourceClass, resourcePath).userAgent());
+  public static EBirdClient fromStream(HttpClient executor, InputStream stream) {
+    return new EBirdClient(executor, EBirdCredentials.fromStream(stream).userAgent());
   }
 
   private static <V> boolean responseIsSuccessful(HttpResponse<V> response) {
