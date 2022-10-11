@@ -1,2 +1,2 @@
 MUNIN_OPTS="-Dswim.config=/etc/munin/server.recon -Dreddit.conf=/etc/munin/reddit-config.properties -Debird.conf=/etc/munin/ebird-config.properties -Dreviewers.conf=/etc/munin/reviewers.txt -Dnonparticipants.conf=/etc/munin/nonparticipants.txt"
-JVM_OPTS="-Xms2g -Xmx4g"
+JVM_OPTS="-Xms1g -Xmx2g"
