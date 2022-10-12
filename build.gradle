@@ -57,7 +57,7 @@ test {
 
 ospackage {
   release '1'
-  prefix '/opt/munin'
+  prefix '/opt/swim-munin'
 }
 
 task packageDeb(type: Deb) {

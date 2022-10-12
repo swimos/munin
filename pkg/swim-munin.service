@@ -3,9 +3,10 @@ Description=FileTheseBirds/munin
 Wants=network.target
 
 [Service]
-EnvironmentFile=-/etc/sysconfig/munin
-ExecStart=/opt/munin/bin/munin
-User=munin
+EnvironmentFile=-/etc/sysconfig/swim-munin
+ExecStart=/opt/swim-munin/bin/swim-munin
+SuccessExitStatus=143
+User=swim-munin
 Restart=on-failure
 LimitNOFILE=65535
 
