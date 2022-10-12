@@ -14,6 +14,9 @@ source code and documentation here is mostly driver- and "business
 logic"-focused; refer to Swim's guides if you wish to learn more about the
 runtime.
 
+A public instance of `munin` is available at `munin.swim.services` over both
+the secure `warps` and the `warp` protocols.
+
 ## Prerequisites
 
 1. JDK 11+
@@ -103,7 +106,8 @@ processing far more than that under the hood.
 
 We use `swim-cli` commands in the following examples for simplicity; these may
 just as easily be translated into downlinks. Be sure to replace
-`warp://20.245.188.248` with the host under which your `munin` instance runs.
+`warps://munin.swim.services` with the host under which your `munin` instance
+runs, e.g. `warp://localhost:9001`.
 
 ### Statuses of all posts
 
@@ -111,7 +115,7 @@ In the context of this API, the "status" of a submission is defined to be a
 flattened union of its info and (if it's nonempty) in-progress answer.
 
 ```
-% swim-cli sync -h warp://20.245.188.248 -n /submissions -l statuses
+% swim-cli sync -h warps://munin.swim.services -n /submissions -l statuses
 
 @update(key:"/submission/xwgwh6")@status{id:xwgwh6,title:"What species are these? In eastern washingon and I saw one jump",location:"north america",thumbnail:"https://b.thumbs.redditmedia.com/svwmIdeX0vhhgUT_sYSXc1SJ-jMizyMUJEr7hg9HFGE.jpg",createdUtc:1664991193,karma:8,commentCount:5,taxa:{bkbmag1},reviewers:{brohitbrose}}
 @update(key:"/submission/xwgwj0")@status{id:xwgwj0,title:"Anyone know what this feather could belong to? West Michigan, USA.",location:"north america",thumbnail:"https://a.thumbs.redditmedia.com/_gmhGQJpMM7R04UigBVFsVkXY7h7fh0dPhT_CtnvHo8.jpg",createdUtc:1664991196,karma:14,commentCount:5,taxa:{wiltur},reviewers:{tinylongwing}}
@@ -122,7 +126,7 @@ flattened union of its info and (if it's nonempty) in-progress answer.
 ### Unanswered(/answered/unreviewed/reviewed) submission statuses
 
 ```
-% swim-cli sync -h warp://20.245.188.248 -n /submissions -l unanswered
+% swim-cli sync -h warps://munin.swim.services -n /submissions -l unanswered
 
 @update(key:xwaj1m)@status{id:xwaj1m,title:"Can anyone ID this strange bird sound?",location:unknown,thumbnail:"https://b.thumbs.redditmedia.com/xhMyBWKfdQzhWKITLRHHYlLF_wQAqHkFGPBtHwSVvjo.jpg",createdUtc:1664976070,karma:7,commentCount:3,taxa:,reviewers:}
 @update(key:xwxh4k)@status{id:xwxh4k,title:"Not a usual bird we see in the city. Location: Philippines",location:"southeast asia",thumbnail:"https://b.thumbs.redditmedia.com/zpt1ueqL9S1N6Pb-e2x0ImGNUrh8f-Z5wzVp-mb2z0A.jpg",createdUtc:1665035125,karma:13,commentCount:11,taxa:,reviewers:}
@@ -135,7 +139,7 @@ The `answered`, `unreviewed`, and `reviewed` lanes are similarly available.
 ### Just answers (including empty ones) for all submissions
 
 ```
-% swim-cli sync -h warp://20.245.188.248 -n /throttledPublish -l answers 
+% swim-cli sync -h warps://munin.swim.services -n /throttledPublish -l answers 
 
 @update(key:"/submission/xxkv53")@answer{taxa:{comyel}}
 @update(key:"/submission/xxkwcq")
@@ -152,7 +156,7 @@ is over 36 hours old.
 ### Info about one submission
 
 ```
-% swim-cli sync -h warp://20.245.188.248 -n /submission/y0drr3 -l info
+% swim-cli sync -h warps://munin.swim.services -n /submission/y0drr3 -l info
 
 @submission{id:y0drr3,title:"Bird ID help! Northern Illinois",location:"north america",thumbnail:"https://b.thumbs.redditmedia.com/dlK6Ls1MWwjBIYsfby4T4vXbw7cVj0oXAbJW9EkO2Ac.jpg",createdUtc:1665405563,karma:32,commentCount:8}
 ```
@@ -160,7 +164,7 @@ is over 36 hours old.
 ### Answer for one submission
 
 ```
-% swim-cli sync -h warp://20.245.188.248 -n /submission/y0drr3 -l answer
+% swim-cli sync -h warps://munin.swim.services -n /submission/y0drr3 -l answer
 
 @answer{taxa:{eursta,rebwoo}}
 ```
@@ -168,7 +172,7 @@ is over 36 hours old.
 ### Status of one submission
 
 ```
-% swim-cli sync -h warp://20.245.188.248 -n /submission/y0drr3 -l status
+% swim-cli sync -h warps://munin.swim.services -n /submission/y0drr3 -l status
 
 @status{id:y0drr3,title:"Bird ID help! Northern Illinois",location:"north america",thumbnail:"https://b.thumbs.redditmedia.com/dlK6Ls1MWwjBIYsfby4T4vXbw7cVj0oXAbJW9EkO2Ac.jpg",createdUtc:1665405563,karma:31,commentCount:8,taxa:{eursta,rebwoo},reviewers:}
 ```
@@ -176,7 +180,7 @@ is over 36 hours old.
 ### Nonempty motions (i.e. answer contributors) for a submission
 
 ```
-% swim-cli sync -h warp://20.245.188.248 -n /submission/xvtxqc -l motions
+% swim-cli sync -h warps://munin.swim.services -n /submission/xvtxqc -l motions
 
 @update(key:{1664927079,ir33kwk})@review(brohitbrose){plusTaxa:{leasan,y00496}}
 @update(key:{1664997555,ir6sjgg})@review(haematopuspalliatus)
