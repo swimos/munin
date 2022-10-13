@@ -130,9 +130,14 @@ public class ExtractParse {
     }
     if (Users.userIsReviewer(comment.author())
         && !comment.body().contains("!nr")) {
-      return parseReviewBased(comment.author(), comment.body());
+      return parseReviewBased(comment.author(), unescapedBody(comment));
     }
-    return parseSuggestionBased(comment.body());
+    return parseSuggestionBased(unescapedBody(comment));
+  }
+
+  private static String unescapedBody(Comment comment) {
+    return comment.body().replaceAll("\\A\\\\+", "+")
+        .replaceAll("\n\\\\+", "\n+");
   }
 
 }

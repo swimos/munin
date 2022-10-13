@@ -93,29 +93,6 @@ class ExtractingVisitor extends AbstractVisitor {
     super.visit(link);
   }
 
-//  @Override
-//  public void visit(Text text) {
-//    // hack around fancy-pants behavior
-//    final String lamePrefix = "\\+";
-//    System.out.println("literal: " + text.getLiteral());
-//    System.out.println("next: " + text.getNext());
-//    if (text.getLiteral().startsWith(lamePrefix)) {
-//      System.out.println("got here: " + text.getLiteral());
-//      final ExtractingVisitor visitor = new ExtractingVisitor();
-//      final int upper = text.getLiteral().substring(lamePrefix.length()).lastIndexOf('+');
-//      if (upper > 0) {
-//        PARSER.parse(text.getLiteral().substring(lamePrefix.length() - 1,
-//                upper + 1))
-//            .accept(visitor);
-//        this.plusTaxa().addAll(visitor.plusTaxa());
-//        this.plusSpeciesHints().addAll(visitor.plusSpeciesHints());
-//        this.plusTaxonHints().addAll(visitor.plusTaxonHints());
-//      }
-//      // shouldn't be needed for Text, but why not
-//      super.visit(text);
-//    }
-//  }
-
   @Override
   public void visit(CustomNode customNode) {
     if (customNode instanceof SpeciesHint) {

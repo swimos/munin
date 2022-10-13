@@ -67,14 +67,13 @@ public class ExtractParseSpec {
     assertEquals(extract.taxonHints(), Set.of("Setophaga%20sp"));
   }
 
-  // FIXME: decide on how to best address escaped characters
-//  @Test
-//  public void testEscaped() {
-//    final String body = "\\++hybrid yellow dark junco++, nice find!\n\n"
-//        + "- \\+Clay-colored Sparrow+ behind that, and ++diurnal raptor sp++ is the best we can do";
-//    final Extract extract = ExtractParse.parseComment(bareReview(body));
-//    assertEquals(extract.taxonHints(), Set.of("hybrid%20yellow%20dark%20junco", "diurnal%20raptor%20sp"));
-//    assertEquals(extract.hints(), Set.of("Clay-colored%20Sparrow"));
-//  }
+  @Test
+  public void testEscaped() {
+    final String body = "\\++hybrid yellow dark junco++, nice find!\n\n"
+        + "\\+Clay-colored Sparrow+ behind that, and ++diurnal raptor sp++ is the best we can do";
+    final Extract extract = ExtractParse.parseComment(bareSuggestion(body));
+    assertEquals(extract.taxonHints(), Set.of("hybrid%20yellow%20dark%20junco", "diurnal%20raptor%20sp"));
+    assertEquals(extract.hints(), Set.of("Clay-colored%20Sparrow"));
+  }
 
 }
