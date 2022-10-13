@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.connect.http.HttpConnectException;
 import filethesebirds.munin.connect.reddit.RedditApiException;
 import filethesebirds.munin.connect.reddit.RedditResponse;
 import filethesebirds.munin.digest.Submission;
@@ -44,7 +45,7 @@ public class SubmissionsFetchAgent extends IngestingAgent<RedditResponse<Submiss
   public RedditResponse<Submission[]> fetch() throws RelayException {
     try {
       return Shared.redditClient().fetchMaxUndocumentedPosts();
-    } catch (RedditApiException e) {
+    } catch (RedditApiException | HttpConnectException e) {
       throw new RelayException("Failed to fetch", e, false);
     }
   }

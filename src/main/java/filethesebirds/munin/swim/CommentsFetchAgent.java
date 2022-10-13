@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.connect.http.HttpConnectException;
 import filethesebirds.munin.connect.reddit.RedditApiException;
 import filethesebirds.munin.connect.reddit.RedditResponse;
 import filethesebirds.munin.digest.Comment;
@@ -105,7 +106,7 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
           return Shared.redditClient().fetchMaxUndocumentedComments();
         }
       }
-    } catch (RedditApiException e) {
+    } catch (RedditApiException | HttpConnectException e) {
       throw new RelayException("Failed to fetch", e, false);
     }
   }
