@@ -165,7 +165,19 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
     this.beforeTimestamp = latestTimestampMillis;
     this.softBeforeTimestamp = this.beforeTimestamp;
     for (int i = 0; i < comments.length; i++) {
+      if ("[deleted]".equals(comments[i].submissionAuthor())) {
+        command("/submission/" + comments[i].submissionId(), "expire",
+            Text.from("expire"));
+        this.liveSubmissions.remove(Long.parseLong(comments[i].submissionId(), 36));
+        continue;
+      }
       if (Users.userIsNonparticipant(comments[i].author())) {
+        continue;
+      }
+      if (comments[i].body().startsWith("!rm") && Users.userIsAdmin(comments[i].author())) {
+        command("/submission/" + comments[i].submissionId(), "expire",
+            Text.from("expire"));
+        this.liveSubmissions.remove(Long.parseLong(comments[i].submissionId(), 36));
         continue;
       }
       if (comments[i].id().equals(oldBefore) // found bookmark

@@ -63,6 +63,10 @@ public final class Users {
     return user != null && NONPARTICIPANTS.contains(user);
   }
 
+  public static boolean userIsAdmin(String user) {
+    return "tinylongwing".equals(user) || "great_horned_owl_".equals(user) || "brohitbrose".equals(user);
+  }
+
   private static boolean isValidUsernameChar(char c) {
     return ('a' <= c && c <= 'z') || ('0' <= c && c <= '9')
         || (c == '-') || (c == '_');
