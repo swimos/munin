@@ -48,12 +48,6 @@ public class SubmissionsAgent extends AbstractAgent {
           this.unreviewed.put(id, n);
           this.unanswered.put(id, n);
         }
-      })
-      .didRemove((k, v) -> {
-        this.reviewed.remove(k);
-        this.answered.remove(k);
-        this.unanswered.remove(k);
-        this.unreviewed.remove(k);
       });
 
   @SwimLane("subscribe")
@@ -68,6 +62,11 @@ public class SubmissionsAgent extends AbstractAgent {
   private CommandLane<String> unsubscribe = this.<String>commandLane()
       .onCommand(uri -> {
         this.statuses.remove(uri);
+        final String k = uri.substring("/submission/".length());
+        this.reviewed.remove(k);
+        this.answered.remove(k);
+        this.unanswered.remove(k);
+        this.unreviewed.remove(k);
       });
 
   @SwimLane("unanswered")
