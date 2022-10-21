@@ -66,7 +66,7 @@ class ExtractingVisitor extends AbstractVisitor {
   private static String filterAlphaHyphenSpace(String s) {
     final StringBuilder sb = new StringBuilder(s.length() + 8);
     for (int i = 0; i < s.length(); i++) {
-      if (Character.isLetter(s.charAt(i)) || ('-' == s.charAt(i))) {
+      if (Character.isLetter(s.charAt(i)) || ('-' == s.charAt(i)) || ('/' == s.charAt(i))) {
         sb.append(s.charAt(i));
       } else if (' ' == s.charAt(i)) {
         sb.append("%20");
