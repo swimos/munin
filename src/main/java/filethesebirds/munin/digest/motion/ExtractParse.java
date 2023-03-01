@@ -31,26 +31,25 @@ public class ExtractParse {
       .extensions(List.of(AutolinkExtension.create(), new HintExtension()))
       .build();
 
-  private static int commandLength(String body) {
-    for (int i = 1; i < body.length(); i++) {
+  private static int commandLength(String body, int n) {
+    for (int i = "!addTaxa ".length(); i < n; i++) {
       final char c = body.charAt(i);
-      if (!(Character.isLetterOrDigit(c) || Character.isWhitespace(c)
-            || c == ',')) {
+      final boolean legal = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z')
+          || (c == ',') || (c != '\n' && Character.isWhitespace(c));
+      if (!legal) {
         return i;
       }
     }
-    return body.length();
+    return n + 1;
   }
 
   private static int fastPathTaxa(String body, int maxCommandLen, Set<String> taxa) {
-    final int firstNewlineIdx = body.indexOf('\n');
-    final String command = body.substring(0, firstNewlineIdx < 0 ? body.length() : firstNewlineIdx);
-    final int commandLength = commandLength(command);
+    final int commandLength = commandLength(body, Math.min(body.length(), maxCommandLen));
     // Suspect user error for excessively long commands
-    if (command.length() > maxCommandLen) {
+    if (commandLength > maxCommandLen) {
       return 0;
     }
-    final String[] split = command.substring(0, commandLength).split("(\\s|,)+");
+    final String[] split = body.substring(0, commandLength).split("(\\s|,)+");
     int added = 0;
     for (int i = 1; i < split.length; i++) {
       if (Taxonomy.containsCode(split[i])) {
@@ -65,7 +64,7 @@ public class ExtractParse {
     if (body.startsWith("!addTaxa", from) || body.startsWith("!addtaxa", from)) {
       return from + 1;
     } else if (body.startsWith("!overrideTaxa", from) || body.startsWith("!overridetaxa", from)) {
-      return -(from + 1);
+      return -from - 1;
     }
     final int seek = body.indexOf("\n!", from);
     return seek < 0 ? 0 : seekToCommand(body, seek + 1);
@@ -100,14 +99,14 @@ public class ExtractParse {
   }
 
   public static Extract parseSuggestionBased(String body) {
-    return parse(body, 128,
+    return parse(body, 256,
         (d, i) -> ImmutableExtract.create(ImmutableSuggestion.plus(d), null, null),
         (d, i) -> ImmutableExtract.create(ImmutableSuggestion.override(d), null, null),
         ImmutableExtract.create(ImmutableSuggestion.empty(), null, null));
   }
 
   public static Extract parseReviewBased(String reviewer, String body) {
-    return parse(body, 256,
+    return parse(body, 512,
         (d, i) -> i > 0
             ? ImmutableExtract.create(ImmutableReview.plus(reviewer, d), null, null)
             // Reviewer !addTaxa with errors is an empty suggestion, not an empty review
