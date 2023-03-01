@@ -8,8 +8,12 @@ public class ImmutableMotionSpec {
 
   // Expose ordinarily-unavailable constructors to facilitate other tests
 
-  public static Suggestion newImmutableSuggestion(Set<String> pluses) {
-    return ImmutableSuggestion.create(pluses);
+  public static Suggestion newPlusImmutableSuggestion(Set<String> pluses) {
+    return ImmutableSuggestion.create(pluses, null);
+  }
+
+  public static Suggestion newOverrideImmutableSuggestion(Set<String> overrides) {
+    return ImmutableSuggestion.create(null, overrides);
   }
 
   public static Suggestion emptySuggestion() {

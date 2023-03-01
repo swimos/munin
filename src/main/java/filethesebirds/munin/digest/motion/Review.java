@@ -23,8 +23,6 @@ import java.util.Set;
  */
 public interface Review extends Motion {
 
-  Set<String> overrideTaxa();
-
   String reviewer();
 
   /**

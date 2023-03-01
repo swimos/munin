@@ -32,8 +32,6 @@ class ImmutableReview implements Review {
   private static final ImmutableReview FALLBACK = ImmutableReview.override("--", Collections.emptySet());
 
   private final Suggestion suggestion;
-
-  private final Set<String> overrideTaxa;
   private final String reviewer;
 
   private ImmutableReview(String reviewer, Set<String> plusTaxa,
@@ -43,13 +41,7 @@ class ImmutableReview implements Review {
       throw new IllegalArgumentException("Invalid Reddit user: " + lower);
     }
     this.reviewer = lower;
-    if (overrideTaxa == null || overrideTaxa.isEmpty()) {
-      this.suggestion = ImmutableSuggestion.create(plusTaxa);
-      this.overrideTaxa = Collections.emptySet();
-    } else {
-      this.suggestion = ImmutableSuggestion.empty();
-      this.overrideTaxa = Collections.unmodifiableSet(overrideTaxa);
-    }
+    this.suggestion = ImmutableSuggestion.create(plusTaxa, overrideTaxa);
   }
 
   @Override
@@ -81,7 +73,7 @@ class ImmutableReview implements Review {
 
   @Override
   public Set<String> overrideTaxa() {
-    return this.overrideTaxa;
+    return toSuggestion().overrideTaxa();
   }
 
   @Override

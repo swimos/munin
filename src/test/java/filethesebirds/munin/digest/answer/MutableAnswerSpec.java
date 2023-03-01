@@ -14,16 +14,20 @@ public class MutableAnswerSpec {
   public void testAnswerLifecycle() {
     final Answer answer = Answers.mutable();
     final Suggestion sug1 = ImmutableMotionSpec.emptySuggestion();
-    final Suggestion sug2 = ImmutableMotionSpec.newImmutableSuggestion(Set.of("foo", "bar"));
-    final Suggestion sug3 = ImmutableMotionSpec.newImmutableSuggestion(Set.of("foo", "baz"));
+    final Suggestion sug2 = ImmutableMotionSpec.newPlusImmutableSuggestion(Set.of("foo", "bar"));
+    final Suggestion sug3 = ImmutableMotionSpec.newPlusImmutableSuggestion(Set.of("foo", "baz"));
     answer.apply(sug1).apply(sug2).apply(sug3);
     // No-frills set union
     assertEquals(answer.taxa(), Set.of("foo", "bar", "baz"));
+    final Suggestion sug4 = ImmutableMotionSpec.newOverrideImmutableSuggestion(Set.of("foo", "bar"));
+    answer.apply(sug4);
+    // Override has removal ability
+    assertEquals(answer.taxa(), Set.of("foo", "bar"));
     final Review rev1 = ImmutableMotionSpec.newEmptyImmutableReview("uncheckedReviewer");
-    final Suggestion sug4 = ImmutableMotionSpec.newImmutableSuggestion(Set.of("troll", "ololol"));
-    answer.apply(rev1).apply(sug4);
+    final Suggestion sug5 = ImmutableMotionSpec.newPlusImmutableSuggestion(Set.of("troll", "ololol"));
+    answer.apply(rev1).apply(sug5);
     // Review locks out further suggestions
-    assertEquals(answer.taxa(), Set.of("foo", "bar", "baz"));
+    assertEquals(answer.taxa(), Set.of("foo", "bar"));
     // A new reviewer may still contribute, but suggesters may not
     final Review rev3 = ImmutableMotionSpec.newOverrideImmutableReview("difReviewer", Set.of("foo"));
     answer.apply(rev3).apply(sug4);

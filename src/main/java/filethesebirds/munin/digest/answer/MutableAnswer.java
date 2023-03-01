@@ -70,17 +70,22 @@ class MutableAnswer implements Answer {
 
   @Override
   public boolean suggestionIsSignificant(Suggestion suggestion) {
-    return suggestion != null && !isReviewed() && !taxa().containsAll(suggestion.plusTaxa());
+    if (suggestion == null || isReviewed()) {
+      return false;
+    }
+    return !suggestion.overrideTaxa().isEmpty() || !taxa().containsAll(suggestion.plusTaxa());
   }
 
   @Override
   public Answer suggest(Suggestion suggestion) {
-    if (suggestion == null) {
+    if (suggestion == null || isReviewed()) {
       return this;
     }
-    // Suggestions may only update non-reviewed answers
-    if (!isReviewed()) {
+    if (suggestion.overrideTaxa().isEmpty()) {
       addAllTaxa(suggestion.plusTaxa());
+    } else {
+      clearTaxa();
+      addAllTaxa(suggestion.overrideTaxa());
     }
     return this;
   }

@@ -25,6 +25,8 @@ public interface Motion {
 
   Set<String> plusTaxa();
 
+  Set<String> overrideTaxa();
+
   Motion additionalTaxa(Set<String> append);
 
   boolean isEmpty();

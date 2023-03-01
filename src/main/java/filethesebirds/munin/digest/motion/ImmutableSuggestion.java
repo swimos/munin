@@ -27,15 +27,22 @@ import static filethesebirds.munin.digest.Forms.forSetString;
 
 class ImmutableSuggestion implements Suggestion {
 
-  private static final ImmutableSuggestion EMPTY = new ImmutableSuggestion(Collections.emptySet());
+  private static final ImmutableSuggestion EMPTY = new ImmutableSuggestion(Collections.emptySet(), Collections.emptySet());
 
   private final Set<String> plusTaxa;
+  private final Set<String> overrideTaxa;
 
-  private ImmutableSuggestion(Set<String> plusTaxa) {
-    if (plusTaxa == null || plusTaxa.isEmpty()) {
-      this.plusTaxa = Collections.emptySet();
+  private ImmutableSuggestion(Set<String> plusTaxa, Set<String> overrideTaxa) {
+    if (overrideTaxa == null || overrideTaxa.isEmpty()) {
+      this.overrideTaxa = Collections.emptySet();
+      if (plusTaxa == null || plusTaxa.isEmpty()) {
+        this.plusTaxa = Collections.emptySet();
+      } else {
+        this.plusTaxa = Set.copyOf(plusTaxa);
+      }
     } else {
-      this.plusTaxa = Collections.unmodifiableSet(plusTaxa);
+      this.plusTaxa = Collections.emptySet();
+      this.overrideTaxa = Set.copyOf(overrideTaxa);
     }
   }
 
@@ -45,17 +52,23 @@ class ImmutableSuggestion implements Suggestion {
   }
 
   @Override
+  public Set<String> overrideTaxa() {
+    return this.overrideTaxa;
+  }
+
+  @Override
   public Suggestion additionalTaxa(Set<String> append) {
-    if (append == null || append.isEmpty()) {
+    if (!overrideTaxa().isEmpty() || append == null || append.isEmpty()
+        || plusTaxa().containsAll(append)) {
       return this;
     }
     if (plusTaxa().isEmpty()) {
-      return ImmutableSuggestion.create(Collections.unmodifiableSet(append));
+      return ImmutableSuggestion.plus(append);
     }
     final Set<String> union = new HashSet<>();
     union.addAll(plusTaxa());
     union.addAll(append);
-    return ImmutableSuggestion.create(Collections.unmodifiableSet(union));
+    return ImmutableSuggestion.plus(union);
   }
 
   @Override
@@ -72,9 +85,20 @@ class ImmutableSuggestion implements Suggestion {
     return this == EMPTY;
   }
 
-  static ImmutableSuggestion create(Set<String> plusTaxa) {
-    return (plusTaxa == null || plusTaxa.isEmpty()) ? EMPTY
-        : new ImmutableSuggestion(plusTaxa);
+  static ImmutableSuggestion plus(Set<String> taxa) {
+    return create(taxa, null);
+  }
+
+  static ImmutableSuggestion override(Set<String> taxa) {
+    return create(null, taxa);
+  }
+
+  static ImmutableSuggestion create(Set<String> plusTaxa, Set<String> overrideTaxa) {
+    if ((overrideTaxa == null || overrideTaxa.isEmpty())
+        && (plusTaxa == null || plusTaxa.isEmpty())) {
+      return empty();
+    }
+    return new ImmutableSuggestion(plusTaxa, overrideTaxa);
   }
 
   private static final Form<Suggestion> FORM = new Form<>() {
@@ -94,8 +118,12 @@ class ImmutableSuggestion implements Suggestion {
       if (object == null || object.isEmpty()) {
         return Value.extant();
       }
-      return Record.create(2).attr(tag())
-          .slot("plusTaxa", forSetString().mold(object.plusTaxa()).toValue());
+      final Record base = Record.create(2).attr(tag());
+      if (!object.overrideTaxa().isEmpty()) {
+        return base.slot("overrideTaxa", forSetString().mold(object.overrideTaxa()).toValue());
+      } else {
+        return base.slot("plusTaxa", forSetString().mold(object.plusTaxa()).toValue());
+      }
     }
 
     @Override
@@ -106,7 +134,8 @@ class ImmutableSuggestion implements Suggestion {
       try {
         final String tag = ((Attr) item.head()).getKey().stringValue();
         if (tag().equals(tag)) {
-          return ImmutableSuggestion.create(forSetString().cast(item.get("plusTaxa")));
+          return ImmutableSuggestion.create(forSetString().cast(item.get("plusTaxa")),
+              forSetString().cast(item.get("overrideTaxa")));
         }
       } catch (Exception e) {
         throw new IllegalArgumentException("Uncastable item: " + item, e);

@@ -45,7 +45,7 @@ public class ExtractParseSpec {
         + "(https://media.ebird.org/catalog?taxonCode=brwhaw&sort=rating_rank_desc&mediaType=photo&age=immature,juvenile)"
         + " may often look incredibly similar to this hawk.";
     final Extract extract = ExtractParse.parseComment(bareReview(body));
-    assertEquals(((Review) extract.base()).overrideTaxa(), Set.of("blujay", "reshaw"));
+    assertEquals(extract.base().overrideTaxa(), Set.of("blujay", "reshaw"));
   }
 
   @Test

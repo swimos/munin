@@ -21,6 +21,7 @@ import filethesebirds.munin.digest.motion.commonmark.HintExtension;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.parser.Parser;
 
@@ -60,67 +61,62 @@ public class ExtractParse {
     return added;
   }
 
-  // FIXME: this can surely be cleaned up
-  public static Extract parseSuggestionBased(String body) {
-    // fast-path
-    if (body.startsWith("!addTaxa ") || body.startsWith("!addtaxa ")) {
-      final Set<String> delta = new HashSet<>();
-      fastPathTaxa(body, 128, delta);
-      return ImmutableExtract.create(ImmutableSuggestion.create(delta), null, null);
+  private static int seekToCommand(String body, int from) {
+    if (body.startsWith("!addTaxa", from) || body.startsWith("!addtaxa", from)) {
+      return from + 1;
+    } else if (body.startsWith("!overrideTaxa", from) || body.startsWith("!overridetaxa", from)) {
+      return -(from + 1);
     }
-    int lower = body.indexOf("\n!addTaxa ");
-    lower = lower < 0 ? Integer.MAX_VALUE : lower;
-    int candidate = body.indexOf("\n!addtaxa ");
-    candidate = candidate < 0 ? Integer.MAX_VALUE : candidate;
-    lower = Math.min(lower, candidate);
-    if (lower < Integer.MAX_VALUE) {
+    final int seek = body.indexOf("\n!", from);
+    return seek < 0 ? 0 : seekToCommand(body, seek + 1);
+  }
+
+  private static Extract parse(String body, int maxCommandLen,
+                               BiFunction<Set<String>, Integer, Extract> plusGenerator,
+                               BiFunction<Set<String>, Integer, Extract> overrideGenerator,
+                               Extract empty) {
+    final int seek = seekToCommand(body, 0);
+    if (seek > 0) {
       final Set<String> delta = new HashSet<>();
-      fastPathTaxa(body.substring(lower + 1), 128, delta);
-      return ImmutableExtract.create(ImmutableSuggestion.create(delta), null, null);
+      final int taxa = fastPathTaxa(body.substring(seek - 1), maxCommandLen, delta);
+      return plusGenerator.apply(delta, taxa);
+    } else if (seek < 0) {
+      final Set<String> delta = new HashSet<>();
+      final int taxa = fastPathTaxa(body.substring(-(seek + 1)), maxCommandLen, delta);
+      return overrideGenerator.apply(delta, taxa);
     }
-    // slow-path
+    // fast-path: no URLs present, and not enough + signs to generate hints
+    if (!body.contains("http")) {
+      final int firstPlus = body.indexOf('+');
+      if (firstPlus < 0 || body.lastIndexOf('+') == firstPlus) {
+        return empty;
+      }
+    }
+    // slow path
     final ExtractingVisitor visitor = new ExtractingVisitor();
     PARSER.parse(body).accept(visitor);
-    return ImmutableExtract.create(ImmutableSuggestion.create(visitor.plusTaxa()),
+    return ImmutableExtract.create(ImmutableSuggestion.create(visitor.plusTaxa(), null),
         visitor.plusSpeciesHints(), visitor.plusTaxonHints());
   }
 
+  public static Extract parseSuggestionBased(String body) {
+    return parse(body, 128,
+        (d, i) -> ImmutableExtract.create(ImmutableSuggestion.plus(d), null, null),
+        (d, i) -> ImmutableExtract.create(ImmutableSuggestion.override(d), null, null),
+        ImmutableExtract.create(ImmutableSuggestion.empty(), null, null));
+  }
+
   public static Extract parseReviewBased(String reviewer, String body) {
-    // fast-path
-    if (body.startsWith("!overrideTaxa ") || body.startsWith("!overridetaxa ")) {
-      final Set<String> delta = new HashSet<>();
-      if (fastPathTaxa(body, 256, delta) > 0) {
-        return ImmutableExtract.create(ImmutableReview.override(reviewer, delta), null, null);
-      }
-      // override with mistake is an empty suggestion, not an empty review
-      return ImmutableExtract.create(ImmutableSuggestion.empty(), null, null);
-    }
-    if (body.startsWith("!addTaxa") || body.startsWith("!addtaxa")) {
-      final Set<String> delta = new HashSet<>();
-      if (fastPathTaxa(body, 256, delta) > 0) {
-        return ImmutableExtract.create(ImmutableReview.plus(reviewer, delta), null, null);
-      }
-      // addTaxa with mistakes is an empty suggestion, not an empty review
-      return ImmutableExtract.create(ImmutableSuggestion.empty(), null, null);
-    }
-    int lower = body.indexOf("\n!addTaxa ");
-    lower = lower < 0 ? Integer.MAX_VALUE : lower;
-    int candidate = body.indexOf("\n!addtaxa ");
-    candidate = candidate < 0 ? Integer.MAX_VALUE : candidate;
-    lower = Math.min(lower, candidate);
-    if (lower < Integer.MAX_VALUE) {
-      final Set<String> delta = new HashSet<>();
-      if (fastPathTaxa(body.substring(lower + 1), 256, delta) > 0) {
-        return ImmutableExtract.create(ImmutableReview.plus(reviewer, delta), null, null);
-      }
-      // addTaxa with mistakes is an empty suggestion
-      return ImmutableExtract.create(ImmutableSuggestion.empty(), null, null);
-    }
-    // slow-path
-    final ExtractingVisitor visitor = new ExtractingVisitor();
-    PARSER.parse(body).accept(visitor);
-    return ImmutableExtract.create(ImmutableReview.plus(reviewer, visitor.plusTaxa()),
-        visitor.plusSpeciesHints(), visitor.plusTaxonHints());
+    return parse(body, 256,
+        (d, i) -> i > 0
+            ? ImmutableExtract.create(ImmutableReview.plus(reviewer, d), null, null)
+            // Reviewer !addTaxa with errors is an empty suggestion, not an empty review
+            : ImmutableExtract.create(ImmutableSuggestion.empty(), null, null),
+        (d, i) -> i > 0
+            ? ImmutableExtract.create(ImmutableReview.override(reviewer, d), null, null)
+            // Reviewer !overrideTaxa with errors is an empty suggestion, not an empty review
+            : ImmutableExtract.create(ImmutableSuggestion.empty(), null, null),
+        ImmutableExtract.create(ImmutableReview.empty(reviewer), null, null));
   }
 
   public static Extract parseComment(Comment comment) {
