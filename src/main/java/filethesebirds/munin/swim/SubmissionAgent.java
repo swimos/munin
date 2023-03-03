@@ -136,7 +136,7 @@ public class SubmissionAgent extends AbstractAgent {
     if (extract.isEmpty()) {
       return;
     }
-    if (!extract.hints().isEmpty() || !extract.taxonHints().isEmpty()) {
+    if (!extract.hints().isEmpty() || !extract.vagueHints().isEmpty()) {
       if (!cueHintTransformations(comment, extract)) {
         System.out.println(nodeUri() + ": failed to cue task for comment " + comment);
       }

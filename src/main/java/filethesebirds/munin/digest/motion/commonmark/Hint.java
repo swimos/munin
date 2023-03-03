@@ -17,9 +17,9 @@ package filethesebirds.munin.digest.motion.commonmark;
 import org.commonmark.node.CustomNode;
 import org.commonmark.node.Delimited;
 
-public class SpeciesHint extends CustomNode implements Delimited {
+public class Hint extends CustomNode implements Delimited {
 
-  public SpeciesHint() {
+  public Hint() {
   }
 
   @Override

@@ -52,7 +52,7 @@ public interface Extract {
 
   Set<String> hints();
 
-  Set<String> taxonHints();
+  Set<String> vagueHints();
 
   boolean isEmpty();
 

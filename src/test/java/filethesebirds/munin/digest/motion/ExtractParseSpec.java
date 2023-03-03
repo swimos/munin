@@ -64,16 +64,16 @@ public class ExtractParseSpec {
     final String body = "++Setophaga sp++ or doing an addTaxa with the code from the link you should see soon would both work.\n\n!nr";
     final Extract extract = ExtractParse.parseComment(bareReview(body));
     assertEquals(extract.base().plusTaxa(), Collections.emptySet());
-    assertEquals(extract.taxonHints(), Set.of("Setophaga%20sp"));
+    assertEquals(extract.vagueHints(), Set.of("setophaga%20sp"));
   }
 
   @Test
   public void testEscaped() {
     final String body = "\\++hybrid yellow dark junco++, nice find!\n\n"
-        + "\\+Clay-colored Sparrow+ behind that, and ++diurnal raptor sp++ is the best we can do";
+        + "\\+Clay-colored        Sparrow+ behind that, and ++diurnal\traptor sp++ is the best we can do";
     final Extract extract = ExtractParse.parseComment(bareSuggestion(body));
-    assertEquals(extract.taxonHints(), Set.of("hybrid%20yellow%20dark%20junco", "diurnal%20raptor%20sp"));
-    assertEquals(extract.hints(), Set.of("Clay-colored%20Sparrow"));
+    assertEquals(extract.vagueHints(), Set.of("hybrid%20yellow%20dark%20junco", "diurnal%20raptor%20sp"));
+    assertEquals(extract.hints(), Set.of("clay-colored%20sparrow"));
   }
 
 }

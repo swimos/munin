@@ -16,7 +16,6 @@ package filethesebirds.munin.swim;
 
 import filethesebirds.munin.util.ConfigUtils;
 import filethesebirds.munin.connect.ebird.EBirdClient;
-import filethesebirds.munin.connect.reddit.RedditApiException;
 import filethesebirds.munin.connect.reddit.RedditClient;
 import java.io.InputStream;
 import java.net.http.HttpClient;

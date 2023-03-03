@@ -51,10 +51,10 @@ class HintDelimiterProcessor implements DelimiterProcessor {
     // calculate actual number of delimiters used from this closer
     if (openingRun.length() >= 2 && closingRun.length() >= 2) {
       usedDelimiters = 2;
-      hint = new TaxonHint();
+      hint = new VagueHint();
     } else {
       usedDelimiters = 1;
-      hint = new SpeciesHint();
+      hint = new Hint();
     }
 
     SourceSpans sourceSpans = SourceSpans.empty();

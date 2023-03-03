@@ -102,7 +102,7 @@ public final class ExtractPurify {
         break;
       }
       try {
-        Value payload = findTaxon(client, hint);
+        final Value payload = findTaxon(client, hint);
         if (payload.length() == 0) {
           throw new RuntimeException("Empty eBird response: " + payload);
         }
@@ -125,7 +125,7 @@ public final class ExtractPurify {
     int exploredHints = 0;
     exploredHints = exploreSpeciesHints(client, extract.hints(), toAppend,
         exploredHints, maxHintsToExplore);
-    exploreTaxonHints(client, extract.taxonHints(), toAppend, exploredHints,
+    exploreTaxonHints(client, extract.vagueHints(), toAppend, exploredHints,
         maxHintsToExplore);
     return extract.base().additionalTaxa(toAppend);
   }

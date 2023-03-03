@@ -14,8 +14,8 @@
 
 package filethesebirds.munin.digest.motion;
 
-import filethesebirds.munin.digest.motion.commonmark.SpeciesHint;
-import filethesebirds.munin.digest.motion.commonmark.TaxonHint;
+import filethesebirds.munin.digest.motion.commonmark.Hint;
+import filethesebirds.munin.digest.motion.commonmark.VagueHint;
 import java.util.HashSet;
 import java.util.Set;
 import org.commonmark.node.AbstractVisitor;
@@ -27,25 +27,25 @@ import swim.uri.Uri;
 class ExtractingVisitor extends AbstractVisitor {
 
   private final Set<String> plusTaxa;
-  private final Set<String> plusSpeciesHints;
-  private final Set<String> plusTaxonHints;
+  private final Set<String> plusHints;
+  private final Set<String> plusVagueHints;
 
   ExtractingVisitor() {
     this.plusTaxa = new HashSet<>();
-    this.plusSpeciesHints = new HashSet<>();
-    this.plusTaxonHints = new HashSet<>();
+    this.plusHints = new HashSet<>();
+    this.plusVagueHints = new HashSet<>();
   }
 
   Set<String> plusTaxa() {
     return this.plusTaxa;
   }
 
-  Set<String> plusSpeciesHints() {
-    return this.plusSpeciesHints;
+  Set<String> plusHints() {
+    return this.plusHints;
   }
 
-  Set<String> plusTaxonHints() {
-    return this.plusTaxonHints;
+  Set<String> plusVagueHints() {
+    return this.plusVagueHints;
   }
 
   private static String singularize(String s) {
@@ -63,12 +63,16 @@ class ExtractingVisitor extends AbstractVisitor {
     return s;
   }
 
-  private static String filterAlphaHyphenSpace(String s) {
+  private static String cleanHint(String s) {
     final StringBuilder sb = new StringBuilder(s.length() + 8);
     for (int i = 0; i < s.length(); i++) {
-      if (Character.isLetter(s.charAt(i)) || ('-' == s.charAt(i)) || ('/' == s.charAt(i))) {
-        sb.append(s.charAt(i));
-      } else if (' ' == s.charAt(i)) {
+      final char c = s.charAt(i);
+      if (('a' <= c && c <= 'z') || ('-' == c) || ('/' == c) || ('(' == c) || (')' == c) || ('.' == c)) {
+        sb.append(c);
+      } else if ('A' <= c && c <= 'Z') {
+        sb.append((char) (c + ('a' - 'A')));
+      } else if (Character.isWhitespace(c)
+          && i > 0 && !Character.isWhitespace(s.charAt(i - 1))) {
         sb.append("%20");
       }
     }
@@ -89,21 +93,21 @@ class ExtractingVisitor extends AbstractVisitor {
       super.visit(link);
       return;
     }
-    CommonUrlExtract.extractFromUri(uri, plusTaxa(), plusSpeciesHints());
+    CommonUrlExtract.extractFromUri(uri, plusTaxa(), plusHints());
     super.visit(link);
   }
 
   @Override
   public void visit(CustomNode customNode) {
-    if (customNode instanceof SpeciesHint) {
+    if (customNode instanceof Hint) {
       if (customNode.getFirstChild() instanceof Text) {
-        final String filtered = filterAlphaHyphenSpace(singularize(((Text) customNode.getFirstChild()).getLiteral()));
-        plusSpeciesHints().add(filtered);
+        final String filtered = cleanHint(singularize(((Text) customNode.getFirstChild()).getLiteral()));
+        plusHints().add(filtered);
       }
-    } else if (customNode instanceof TaxonHint) {
+    } else if (customNode instanceof VagueHint) {
       if (customNode.getFirstChild() instanceof Text) {
-        final String filtered = filterAlphaHyphenSpace(singularize(((Text) customNode.getFirstChild()).getLiteral()));
-        plusTaxonHints().add(filtered);
+        final String filtered = cleanHint(singularize(((Text) customNode.getFirstChild()).getLiteral()));
+        plusVagueHints().add(filtered);
       }
     }
     super.visit(customNode);

@@ -25,24 +25,24 @@ class ImmutableExtract implements Extract {
 
   private final Motion base;
   private final Set<String> hints;
-  private final Set<String> taxonHints;
+  private final Set<String> vagueHints;
 
   private ImmutableExtract(Suggestion suggestion, Set<String> hints,
-                           Set<String> taxonHints) {
+                           Set<String> vagueHints) {
     this.base = suggestion;
     this.hints = (hints == null || hints.isEmpty()) ? Collections.emptySet()
         : Collections.unmodifiableSet(hints);
-    this.taxonHints = (taxonHints == null || taxonHints.isEmpty()) ? Collections.emptySet()
-        : Collections.unmodifiableSet(taxonHints);
+    this.vagueHints = (vagueHints == null || vagueHints.isEmpty()) ? Collections.emptySet()
+        : Collections.unmodifiableSet(vagueHints);
   }
 
   private ImmutableExtract(Review review, Set<String> hints,
-                           Set<String> taxonHints) {
+                           Set<String> vagueHints) {
     this.base = review;
     this.hints = (hints == null || hints.isEmpty()) ? Collections.emptySet()
         : Collections.unmodifiableSet(hints);
-    this.taxonHints = (taxonHints == null || taxonHints.isEmpty()) ? Collections.emptySet()
-        : Collections.unmodifiableSet(taxonHints);
+    this.vagueHints = (vagueHints == null || vagueHints.isEmpty()) ? Collections.emptySet()
+        : Collections.unmodifiableSet(vagueHints);
   }
 
   @Override
@@ -56,8 +56,8 @@ class ImmutableExtract implements Extract {
   }
 
   @Override
-  public Set<String> taxonHints() {
-    return this.taxonHints;
+  public Set<String> vagueHints() {
+    return this.vagueHints;
   }
 
   @Override
@@ -71,28 +71,28 @@ class ImmutableExtract implements Extract {
     return "ImmutableExtract{" +
         "base=" + base +
         ", hints=" + hints +
-        ", taxonHints=" + taxonHints +
+        ", vagueHints=" + vagueHints +
         '}';
   }
 
   static Extract create(Suggestion suggestion,
-                        Set<String> hints, Set<String> taxonHints) {
+                        Set<String> hints, Set<String> vagueHints) {
     if (suggestion == null || suggestion.isEmpty()) {
       if (hints == null || hints.isEmpty()) {
-        if (taxonHints == null || taxonHints.isEmpty()) {
+        if (vagueHints == null || vagueHints.isEmpty()) {
           return empty();
         }
       }
     }
-    return new ImmutableExtract(suggestion, hints, taxonHints);
+    return new ImmutableExtract(suggestion, hints, vagueHints);
   }
 
   static Extract create(Review review,
-                        Set<String> hints, Set<String> taxonHints) {
+                        Set<String> hints, Set<String> vagueHints) {
     if (review == null) {
       return empty();
     }
-    return new ImmutableExtract(review, hints, taxonHints);
+    return new ImmutableExtract(review, hints, vagueHints);
   }
 
   static Extract empty() {

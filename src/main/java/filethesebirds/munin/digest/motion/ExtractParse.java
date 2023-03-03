@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.parser.Parser;
 
@@ -34,7 +35,7 @@ public class ExtractParse {
   private static int commandLength(String body, int n) {
     for (int i = "!addTaxa ".length(); i < n; i++) {
       final char c = body.charAt(i);
-      final boolean legal = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z')
+      final boolean legal = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c == 'T')
           || (c == ',') || (c != '\n' && Character.isWhitespace(c));
       if (!legal) {
         return i;
@@ -73,7 +74,7 @@ public class ExtractParse {
   private static Extract parse(String body, int maxCommandLen,
                                BiFunction<Set<String>, Integer, Extract> plusGenerator,
                                BiFunction<Set<String>, Integer, Extract> overrideGenerator,
-                               Extract empty) {
+                               Extract empty, Function<ExtractingVisitor, Extract> slowGenerator) {
     final int seek = seekToCommand(body, 0);
     if (seek > 0) {
       final Set<String> delta = new HashSet<>();
@@ -94,15 +95,15 @@ public class ExtractParse {
     // slow path
     final ExtractingVisitor visitor = new ExtractingVisitor();
     PARSER.parse(body).accept(visitor);
-    return ImmutableExtract.create(ImmutableSuggestion.create(visitor.plusTaxa(), null),
-        visitor.plusSpeciesHints(), visitor.plusTaxonHints());
+    return slowGenerator.apply(visitor);
   }
 
   public static Extract parseSuggestionBased(String body) {
     return parse(body, 256,
         (d, i) -> ImmutableExtract.create(ImmutableSuggestion.plus(d), null, null),
         (d, i) -> ImmutableExtract.create(ImmutableSuggestion.override(d), null, null),
-        ImmutableExtract.create(ImmutableSuggestion.empty(), null, null));
+        ImmutableExtract.create(ImmutableSuggestion.empty(), null, null),
+        v -> ImmutableExtract.create(ImmutableSuggestion.plus(v.plusTaxa()), v.plusHints(), v.plusVagueHints()));
   }
 
   public static Extract parseReviewBased(String reviewer, String body) {
@@ -115,7 +116,8 @@ public class ExtractParse {
             ? ImmutableExtract.create(ImmutableReview.override(reviewer, d), null, null)
             // Reviewer !overrideTaxa with errors is an empty suggestion, not an empty review
             : ImmutableExtract.create(ImmutableSuggestion.empty(), null, null),
-        ImmutableExtract.create(ImmutableReview.empty(reviewer), null, null));
+        ImmutableExtract.create(ImmutableReview.empty(reviewer), null, null),
+        v -> ImmutableExtract.create(ImmutableReview.plus(reviewer, v.plusTaxa()), v.plusHints(), v.plusVagueHints()));
   }
 
   public static Extract parseComment(Comment comment) {
