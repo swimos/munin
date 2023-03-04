@@ -86,6 +86,12 @@ public class EBirdClient {
   }
 
   public String findSpecies(String query) throws EBirdApiException {
+    if (query.contains("chicken") && !query.contains("prairie")) {
+      return "redjun1";
+    }
+    if (query.contains("pied") && query.contains("wagtail") && !query.contains("wagtail")) {
+      return "whiwag3";
+    }
     return find(() -> EBirdApi.findSpecies(query, this.userAgent),
         () -> EBirdApi.findSpeciesUK(query, this.userAgent),
         () -> EBirdApi.findSpeciesPH(query, this.userAgent));

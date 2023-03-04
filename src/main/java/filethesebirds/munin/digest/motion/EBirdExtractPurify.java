@@ -27,35 +27,37 @@ public final class EBirdExtractPurify {
   private EBirdExtractPurify() {
   }
 
-  // FIXME
-  private static int disambiguate(String hint, Value payload) {
-    final LevenshteinDistance distance = new LevenshteinDistance();
-    int min = Integer.MAX_VALUE;
-    int bestIdx = 0;
-    for (int i = 0; i < payload.length(); i++) {
-      final Item item = payload.getItem(i);
-      final String commonName = item.get("name").stringValue().split(" - ")[0];
-      final int dist = distance.apply(hint, commonName);
-      if (dist < min) {
-        min = dist;
-        bestIdx = i;
-      }
-
-    }
-    return bestIdx;
+  public static boolean extractIsPurified(Extract extract) {
+    return extract == null || (extract.hints().isEmpty() && extract.vagueHints().isEmpty());
   }
 
-  public static Extract purifyOneHint(EBirdClient client, Extract extract) {
+  public static Extract purifyOneHint(EBirdClient client, Extract extract)
+      throws EBirdApiException {
+    if (extractIsPurified(extract)) {
+      return extract;
+    }
+    if (!extract.hints().isEmpty()) {
+      final String hint = extract.hints().stream().findAny().get();
+      final String taxon = exploreHint(client, hint, false);
+      return extract.purifyHint(hint, taxon);
+    } else {
+      final String hint = extract.vagueHints().stream().findAny().get();
+      final String taxon = exploreVagueHint(client, hint, false);
+      return extract.purifyVagueHint(hint, taxon);
+    }
+  }
+
+  private static Extract purifyOneHintFailFast(EBirdClient client, Extract extract) {
     if (extractIsPurified(extract)) {
       return extract;
     }
     if (!extract.hints().isEmpty()) {
       final String hint = extract.hints().stream().findAny().get();
       String taxon = null;
-      try { // FIXME
+      try {
         taxon = exploreHint(client, hint, false);
       } catch (EBirdApiException e) {
-        System.out.println("[WARN] failed to process hint " + hint);
+        // swallow
       }
       return extract.purifyHint(hint, taxon);
     } else {
@@ -64,7 +66,7 @@ public final class EBirdExtractPurify {
       try {
         taxon = exploreVagueHint(client, hint, false);
       } catch (EBirdApiException e) {
-        System.out.println("[WARN] failed to process hint " + hint);
+        // swallow
       }
       return extract.purifyVagueHint(hint, taxon);
     }
@@ -86,6 +88,18 @@ public final class EBirdExtractPurify {
     return result;
   }
 
+  @Deprecated
+  public static Motion eBirdPurify(Extract extract, EBirdClient client) {
+    return eBirdPurify(extract, client, 10);
+  }
+
+  private static Motion eBirdPurify(Extract extract, EBirdClient client, int depth) {
+    if (depth <= 0 || extractIsPurified(extract)) {
+      return extract.base();
+    }
+    return eBirdPurify(purifyOneHintFailFast(client, extract), client, depth - 1);
+  }
+
   private static String processStringResponse(String response, String tweakedHint) {
     final Value found = Json.parse(response);
     if (found.length() == 0) {
@@ -98,25 +112,22 @@ public final class EBirdExtractPurify {
     }
   }
 
-  private static String exploreHint(String hint, ClientFind cf)
-      throws EBirdApiException {
-    return processStringResponse(cf.find(hint), hint);
-  }
+  // FIXME
+  private static int disambiguate(String hint, Value payload) {
+    final LevenshteinDistance distance = new LevenshteinDistance();
+    int min = Integer.MAX_VALUE;
+    int bestIdx = 0;
+    for (int i = 0; i < payload.length(); i++) {
+      final Item item = payload.getItem(i);
+      final String commonName = item.get("name").stringValue().split(" - ")[0];
+      final int dist = distance.apply(hint, commonName);
+      if (dist < min) {
+        min = dist;
+        bestIdx = i;
+      }
 
-  private static Motion eBirdPurify(Extract extract, EBirdClient client, int depth) {
-    if (depth <= 0 || extractIsPurified(extract)) {
-      return extract.base();
     }
-    return eBirdPurify(purifyOneHint(client, extract), client, depth - 1);
-  }
-
-  // FIXME: replace with a staggered implementation
-  public static Motion eBirdPurify(Extract extract, EBirdClient client) {
-    return eBirdPurify(extract, client, 10);
-  }
-
-  private static boolean extractIsPurified(Extract extract) {
-    return extract == null || (extract.hints().isEmpty() && extract.vagueHints().isEmpty());
+    return bestIdx;
   }
 
   @FunctionalInterface
@@ -124,6 +135,11 @@ public final class EBirdExtractPurify {
 
     String find(String hint) throws EBirdApiException;
 
+  }
+
+  private static String exploreHint(String hint, ClientFind cf)
+      throws EBirdApiException {
+    return processStringResponse(cf.find(hint), hint);
   }
 
   private static String exploreHint(EBirdClient client, String hint, boolean dry)

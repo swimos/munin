@@ -41,11 +41,11 @@ public class ExtractParse {
         return i;
       }
     }
-    return n + 1;
+    return n;
   }
 
   private static int fastPathTaxa(String body, int maxCommandLen, Set<String> taxa) {
-    final int commandLength = commandLength(body, Math.min(body.length(), maxCommandLen));
+    final int commandLength = commandLength(body, Math.min(body.length(), maxCommandLen + 1));
     // Suspect user error for excessively long commands
     if (commandLength > maxCommandLen) {
       return 0;

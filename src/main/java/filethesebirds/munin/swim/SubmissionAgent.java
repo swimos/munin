@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.connect.ebird.EBirdApiException;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Forms;
@@ -33,6 +34,7 @@ import swim.api.lane.CommandLane;
 import swim.api.lane.MapLane;
 import swim.api.lane.ValueLane;
 import swim.concurrent.AbstractTask;
+import swim.concurrent.TaskRef;
 import swim.structure.Form;
 import swim.structure.Record;
 import swim.structure.Text;
@@ -137,7 +139,8 @@ public class SubmissionAgent extends AbstractAgent {
       return;
     }
     if (!extract.hints().isEmpty() || !extract.vagueHints().isEmpty()) {
-      if (!cueHintTransformations(comment, extract)) {
+      final StaggeredPurifyAction action = new StaggeredPurifyAction(comment, extract);
+      if (!action.cueHintTransformations()) {
         System.out.println(nodeUri() + ": failed to cue task for comment " + comment);
       }
       return;
@@ -145,34 +148,6 @@ public class SubmissionAgent extends AbstractAgent {
     final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
     System.out.println(nodeUri() + ": will put " + laneKey + ", " + extract.base());
     this.motions.put(laneKey, extract.base());
-  }
-
-  private boolean cueHintTransformations(Comment comment, Extract extract) {
-    // FIXME: use performDuty() once fixed in swim-toolkit
-    return asyncStage().task(new AbstractTask() {
-
-      @Override
-      public void runTask() {
-        System.out.println(nodeUri() + ": started purification of " + comment);
-        // blocking call
-        final Motion purified = EBirdExtractPurify.eBirdPurify(extract, Shared.eBirdClient());
-        // small optimization (most comments aren't "productive")
-        if ((purified instanceof Review) || !purified.isEmpty()) {
-          System.out.println(nodeUri() + ": purified extract into " + purified);
-          final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
-          SubmissionAgent.this.motions.put(laneKey, purified);
-        } else {
-          System.out.println(nodeUri() + ": failed to purify " + comment);
-        }
-      }
-
-      @Override
-      public boolean taskWillBlock() {
-        return true;
-      }
-
-    }).cue();
-
   }
 
   private void initiateJoins() {
@@ -206,6 +181,80 @@ public class SubmissionAgent extends AbstractAgent {
           .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
               : Forms.forSetString().mold(a.reviewers()).toValue());
     }
+  }
+
+  private class StaggeredPurifyAction {
+
+    private static final int MAX_EXPLORABLE_HINTS = 10;
+    private static final int MAX_FAILURES = 5;
+
+    private final Comment comment;
+    private volatile Extract soFar;
+    private volatile int hintsSoFar;
+    private volatile int failures;
+    private final TaskRef task;
+
+    private StaggeredPurifyAction(Comment comment1, Extract soFar1) {
+      this.comment = comment1;
+      this.soFar = soFar1;
+      this.hintsSoFar = 0;
+      this.task = asyncStage().task(new AbstractTask() {
+
+        @Override
+        public void runTask() {
+          while (!isComplete()) {
+            try {
+              setSoFar(EBirdExtractPurify.purifyOneHint(Shared.eBirdClient(), getSoFar()));
+              StaggeredPurifyAction.this.hintsSoFar++;
+            } catch (EBirdApiException e) {
+              if (++failures <= MAX_FAILURES) {
+                System.out.println(nodeUri() + ": exception in processing hint for comment " + comment
+                    + ", retrying in ~1 min");
+                setTimer(60000L + (int) (Math.random() * 30000),
+                    StaggeredPurifyAction.this.task::cue);
+              } else {
+                System.out.println(nodeUri() + ": exception in processing hint for comment " + comment
+                    + ", aborting.");
+              }
+              return;
+            }
+          }
+          // On success
+          final Motion purified = getSoFar().base();
+          if ((purified instanceof Review) || !purified.isEmpty()) {
+            System.out.println(nodeUri() + ": purified extract into " + purified);
+            final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
+            SubmissionAgent.this.motions.put(laneKey, purified);
+          } else {
+            System.out.println(nodeUri() + ": failed to purify " + comment);
+          }
+        }
+
+        @Override
+        public boolean taskWillBlock() {
+          return true;
+        }
+
+      });
+    }
+
+    private Extract getSoFar() {
+      return this.soFar;
+    }
+
+    private void setSoFar(Extract extract) {
+      this.soFar = extract;
+    }
+
+    private boolean isComplete() {
+      return this.hintsSoFar >= MAX_EXPLORABLE_HINTS
+          || EBirdExtractPurify.extractIsPurified(this.soFar);
+    }
+
+    private boolean cueHintTransformations() {
+      return this.task.cue();
+    }
+
   }
 
 }
