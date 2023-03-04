@@ -66,20 +66,40 @@ class EBirdApi {
     return URI.create(prefix + String.format(Q_FMT, query));
   }
 
-  public static HttpRequest findTaxon(String query, String userAgent) {
-    return get(findEndpoint(COMMON_PREFIX, query), userAgent);
-  }
-
   public static HttpRequest findIssf(String query, String userAgent) {
     return get(findEndpoint(COMMON_PREFIX + CAT_ISSF, query), userAgent);
+  }
+
+  public static HttpRequest findIssfUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX + CAT_ISSF, query), userAgent);
+  }
+
+  public static HttpRequest findIssfPH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX + CAT_ISSF, query), userAgent);
   }
 
   public static HttpRequest findForm(String query, String userAgent) {
     return get(findEndpoint(COMMON_PREFIX + CAT_FORM, query), userAgent);
   }
 
+  public static HttpRequest findFormUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX + CAT_FORM, query), userAgent);
+  }
+
+  public static HttpRequest findFormPH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX + CAT_FORM, query), userAgent);
+  }
+
   public static HttpRequest findIntergrade(String query, String userAgent) {
     return get(findEndpoint(COMMON_PREFIX + CAT_INTERGRADE, query), userAgent);
+  }
+
+  public static HttpRequest findIntergradeUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX + CAT_INTERGRADE, query), userAgent);
+  }
+
+  public static HttpRequest findIntergradePH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX + CAT_INTERGRADE, query), userAgent);
   }
 
   public static HttpRequest findSpecies(String query, String userAgent) {
@@ -98,16 +118,61 @@ class EBirdApi {
     return get(findEndpoint(COMMON_PREFIX + CAT_DOMESTIC, query), userAgent);
   }
 
+  public static HttpRequest findDomesticUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX + CAT_DOMESTIC, query), userAgent);
+  }
+
+  public static HttpRequest findDomesticPH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX + CAT_DOMESTIC, query), userAgent);
+  }
+
   public static HttpRequest findHybrid(String query, String userAgent) {
     return get(findEndpoint(COMMON_PREFIX + CAT_HYBRID, query), userAgent);
+  }
+
+  public static HttpRequest findHybridUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX + CAT_HYBRID, query), userAgent);
+  }
+
+  public static HttpRequest findHybridPH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX + CAT_HYBRID, query), userAgent);
   }
 
   public static HttpRequest findSlash(String query, String userAgent) {
     return get(findEndpoint(COMMON_PREFIX + CAT_SLASH, query), userAgent);
   }
 
+  public static HttpRequest findSlashUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX + CAT_SLASH, query), userAgent);
+  }
+
+  public static HttpRequest findSlashPH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX + CAT_SLASH, query), userAgent);
+  }
+
   public static HttpRequest findSpuh(String query, String userAgent) {
     return get(findEndpoint(COMMON_PREFIX + CAT_SPUH, query), userAgent);
+  }
+
+  public static HttpRequest findSpuhUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX + CAT_SPUH, query), userAgent);
+  }
+
+  public static HttpRequest findSpuhPH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX + CAT_SPUH, query), userAgent);
+  }
+
+
+  public static HttpRequest findTaxon(String query, String userAgent) {
+    return get(findEndpoint(COMMON_PREFIX, query), userAgent);
+  }
+
+  public static HttpRequest findTaxonUK(String query, String userAgent) {
+    return get(findEndpoint(UK_PREFIX, query), userAgent);
+  }
+
+  public static HttpRequest findTaxonPH(String query, String userAgent) {
+    return get(findEndpoint(PH_PREFIX, query), userAgent);
   }
 
 }

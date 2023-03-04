@@ -54,6 +54,10 @@ public interface Extract {
 
   Set<String> vagueHints();
 
+  Extract purifyHint(String hint, String taxonCode);
+
+  Extract purifyVagueHint(String hint, String taxonCode);
+
   boolean isEmpty();
 
 }

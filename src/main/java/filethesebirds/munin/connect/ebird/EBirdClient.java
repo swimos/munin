@@ -43,7 +43,7 @@ public class EBirdClient {
   private String makeApiCall(Supplier<HttpRequest> requestSupplier)
       throws EBirdApiException {
     final HttpResponse<String> resp = HttpUtils.fireRequest(this.executor, requestSupplier.get(),
-        BodyHandlers.ofString(), 1);
+        BodyHandlers.ofString(), 3);
     if (responseIsSuccessful(resp)) {
       return resp.body();
     } else {
@@ -52,24 +52,73 @@ public class EBirdClient {
     }
   }
 
-  public String findSpecies(String query) throws EBirdApiException {
-    return makeApiCall(() -> EBirdApi.findSpecies(query, this.userAgent));
+  private String find(Supplier<HttpRequest> usSupplier,
+                      Supplier<HttpRequest> ukSupplier,
+                      Supplier<HttpRequest> phSupplier)
+      throws EBirdApiException {
+    final String us = makeApiCall(usSupplier);
+    if (us.length() < 5) {
+      final String uk = makeApiCall(ukSupplier);
+      if (uk.length() < 5) {
+        return makeApiCall(phSupplier);
+      }
+      return uk;
+    }
+    return us;
   }
 
-  public String findSpeciesUK(String query) throws EBirdApiException {
-    return makeApiCall(() -> EBirdApi.findSpeciesUK(query, this.userAgent));
+  public String findIssf(String query) throws EBirdApiException {
+    return find(() -> EBirdApi.findIssf(query, this.userAgent),
+        () -> EBirdApi.findIssfUK(query, this.userAgent),
+        () -> EBirdApi.findIssfPH(query, this.userAgent));
   }
 
-  public String findSpeciesPH(String query) throws EBirdApiException {
-    return makeApiCall(() -> EBirdApi.findSpeciesPH(query, this.userAgent));
+  public String findForm(String query) throws EBirdApiException {
+    return find(() -> EBirdApi.findForm(query, this.userAgent),
+        () -> EBirdApi.findFormUK(query, this.userAgent),
+        () -> EBirdApi.findFormPH(query, this.userAgent));
   }
 
   public String findIntergrade(String query) throws EBirdApiException {
-    return makeApiCall(() -> EBirdApi.findIntergrade(query, this.userAgent));
+    return find(() -> EBirdApi.findIntergrade(query, this.userAgent),
+        () -> EBirdApi.findIntergradeUK(query, this.userAgent),
+        () -> EBirdApi.findIntergradePH(query, this.userAgent));
+  }
+
+  public String findSpecies(String query) throws EBirdApiException {
+    return find(() -> EBirdApi.findSpecies(query, this.userAgent),
+        () -> EBirdApi.findSpeciesUK(query, this.userAgent),
+        () -> EBirdApi.findSpeciesPH(query, this.userAgent));
+  }
+
+  public String findDomestic(String query) throws EBirdApiException {
+    return find(() -> EBirdApi.findDomestic(query, this.userAgent),
+        () -> EBirdApi.findDomesticUK(query, this.userAgent),
+        () -> EBirdApi.findDomesticPH(query, this.userAgent));
+  }
+
+  public String findHybrid(String query) throws EBirdApiException {
+    return find(() -> EBirdApi.findHybrid(query, this.userAgent),
+        () -> EBirdApi.findHybridUK(query, this.userAgent),
+        () -> EBirdApi.findHybridPH(query, this.userAgent));
+  }
+
+  public String findSlash(String query) throws EBirdApiException {
+    return find(() -> EBirdApi.findSlash(query, this.userAgent),
+        () -> EBirdApi.findSlashUK(query, this.userAgent),
+        () -> EBirdApi.findSlashPH(query, this.userAgent));
+  }
+
+  public String findSpuh(String query) throws EBirdApiException {
+    return find(() -> EBirdApi.findSpuh(query, this.userAgent),
+        () -> EBirdApi.findSpuhUK(query, this.userAgent),
+        () -> EBirdApi.findSpuhPH(query, this.userAgent));
   }
 
   public String findTaxon(String query) throws EBirdApiException {
-    return makeApiCall(() -> EBirdApi.findTaxon(query, this.userAgent));
+    return find(() -> EBirdApi.findTaxon(query, this.userAgent),
+        () -> EBirdApi.findTaxonUK(query, this.userAgent),
+        () -> EBirdApi.findTaxonPH(query, this.userAgent));
   }
 
 }

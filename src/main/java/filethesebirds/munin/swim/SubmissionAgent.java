@@ -23,7 +23,7 @@ import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.answer.Answers;
 import filethesebirds.munin.digest.motion.Extract;
 import filethesebirds.munin.digest.motion.ExtractParse;
-import filethesebirds.munin.digest.motion.ExtractPurify;
+import filethesebirds.munin.digest.motion.EBirdExtractPurify;
 import filethesebirds.munin.digest.motion.Review;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +155,7 @@ public class SubmissionAgent extends AbstractAgent {
       public void runTask() {
         System.out.println(nodeUri() + ": started purification of " + comment);
         // blocking call
-        final Motion purified = ExtractPurify.eBirdPurify(extract, Shared.eBirdClient());
+        final Motion purified = EBirdExtractPurify.eBirdPurify(extract, Shared.eBirdClient());
         // small optimization (most comments aren't "productive")
         if ((purified instanceof Review) || !purified.isEmpty()) {
           System.out.println(nodeUri() + ": purified extract into " + purified);

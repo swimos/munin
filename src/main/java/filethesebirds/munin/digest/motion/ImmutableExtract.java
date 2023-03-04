@@ -16,7 +16,9 @@ package filethesebirds.munin.digest.motion;
 
 import filethesebirds.munin.digest.Motion;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 
 class ImmutableExtract implements Extract {
 
@@ -31,18 +33,18 @@ class ImmutableExtract implements Extract {
                            Set<String> vagueHints) {
     this.base = suggestion;
     this.hints = (hints == null || hints.isEmpty()) ? Collections.emptySet()
-        : Collections.unmodifiableSet(hints);
+        : Set.copyOf(hints);
     this.vagueHints = (vagueHints == null || vagueHints.isEmpty()) ? Collections.emptySet()
-        : Collections.unmodifiableSet(vagueHints);
+        : Set.copyOf(vagueHints);
   }
 
   private ImmutableExtract(Review review, Set<String> hints,
                            Set<String> vagueHints) {
     this.base = review;
     this.hints = (hints == null || hints.isEmpty()) ? Collections.emptySet()
-        : Collections.unmodifiableSet(hints);
+        : Set.copyOf(hints);
     this.vagueHints = (vagueHints == null || vagueHints.isEmpty()) ? Collections.emptySet()
-        : Collections.unmodifiableSet(vagueHints);
+        : Set.copyOf(vagueHints);
   }
 
   @Override
@@ -58,6 +60,43 @@ class ImmutableExtract implements Extract {
   @Override
   public Set<String> vagueHints() {
     return this.vagueHints;
+  }
+
+  @Override
+  public Extract purifyHint(String hint, String taxonCode) {
+    return purify(hint, hints(), n -> taxonCode == null
+        ? ImmutableExtract.createFromMotion(base(), n, vagueHints())
+        : ImmutableExtract.createFromMotion(base().additionalTaxa(Set.of(taxonCode)), n, vagueHints()));
+  }
+
+  @Override
+  public Extract purifyVagueHint(String hint, String taxonCode) {
+    return purify(hint, vagueHints(), n -> taxonCode == null
+        ? ImmutableExtract.createFromMotion(base(), hints(), n)
+        : ImmutableExtract.createFromMotion(base().additionalTaxa(Set.of(taxonCode)), hints(), n));
+  }
+
+  private Extract purify(String hint, Set<String> oldHints,
+                         Function<Set<String>, Extract> generator) {
+    if (oldHints.contains(hint)) {
+      final Set<String> newHints;
+      if (oldHints.size() == 1) {
+        newHints = null;
+      } else {
+        newHints = new HashSet<>(oldHints.size() - 1);
+        oldHints.forEach(h -> {
+          if (hint == null) {
+            if (h != null) {
+              newHints.add(h);
+            }
+          } else if (!hint.equals(h)) {
+            newHints.add(h);
+          }
+        });
+      }
+      return generator.apply(newHints);
+    }
+    return this;
   }
 
   @Override
@@ -93,6 +132,17 @@ class ImmutableExtract implements Extract {
       return empty();
     }
     return new ImmutableExtract(review, hints, vagueHints);
+  }
+
+  static Extract createFromMotion(Motion motion,
+                                  Set<String> hints, Set<String> vagueHints) {
+    if (motion instanceof Suggestion) {
+      return create((Suggestion) motion, hints, vagueHints);
+    } else if (motion instanceof Review) {
+      return create((Review) motion, hints, vagueHints);
+    } else {
+      throw new IllegalArgumentException("Unexpected Motion type: " + motion.getClass());
+    }
   }
 
   static Extract empty() {
