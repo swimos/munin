@@ -120,6 +120,9 @@ public final class EBirdExtractPurify {
     for (int i = 0; i < payload.length(); i++) {
       final Item item = payload.getItem(i);
       final String commonName = item.get("name").stringValue().split(" - ")[0];
+      if (commonName.contains("uropea") || commonName.contains("urasi") || commonName.contains("ommon ")) {
+        return i;
+      }
       final int dist = distance.apply(hint, commonName);
       if (dist < min) {
         min = dist;
