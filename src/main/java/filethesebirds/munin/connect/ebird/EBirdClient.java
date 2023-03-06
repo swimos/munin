@@ -87,10 +87,10 @@ public class EBirdClient {
 
   public String findSpecies(String query) throws EBirdApiException {
     if (query.contains("chicken") && !query.contains("prairie")) {
-      return "redjun1";
+      return "[{\"code\":\"redjun1\",\"name\":\"Red Junglefowl (Domestic type) - Gallus gallus (Domestic type)\"}]";
     }
-    if (query.contains("pied") && query.contains("wagtail") && !query.contains("wagtail")) {
-      return "whiwag3";
+    if (query.contains("pied") && query.contains("wagtail") && !query.contains("african")) {
+      return "[{\"code\":\"whiwag3\",\"name\":\"Pied Wagtail - Motacilla alba yarrellii\"}]";
     }
     return find(() -> EBirdApi.findSpecies(query, this.userAgent),
         () -> EBirdApi.findSpeciesUK(query, this.userAgent),
