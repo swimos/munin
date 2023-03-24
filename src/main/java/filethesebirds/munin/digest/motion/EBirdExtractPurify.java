@@ -38,8 +38,17 @@ public final class EBirdExtractPurify {
     }
     if (!extract.hints().isEmpty()) {
       final String hint = extract.hints().stream().findAny().get();
-      final String taxon = exploreHint(client, hint, false);
-      return extract.purifyHint(hint, taxon);
+      final String cachedCode = HintCache.get(hint);
+      if (cachedCode != null) {
+        System.out.println("[INFO] cache hit for " + hint);
+        return extract.purifyHint(hint, cachedCode);
+      } else {
+        final String taxon = exploreHint(client, hint, false);
+        if (taxon != null) {
+          HintCache.put(hint, taxon);
+        }
+        return extract.purifyHint(hint, taxon);
+      }
     } else {
       final String hint = extract.vagueHints().stream().findAny().get();
       final String taxon = exploreVagueHint(client, hint, false);
@@ -102,7 +111,7 @@ public final class EBirdExtractPurify {
 
   private static String processStringResponse(String response, String tweakedHint) {
     final Value found = Json.parse(response);
-    if (found.length() == 0) {
+    if (found.length() == 0) { // TODO: || found.length() > 6
       return null;
     }
     if (found.length() > 1) {
@@ -155,7 +164,7 @@ public final class EBirdExtractPurify {
     } else if (hint.contains("intergrade") || hint.contains("integrade")) {
       final String newHint = hint.replace("intergrade", "").replace("integrade", "");
       return dry ? "intergrade: " + newHint : exploreHint(newHint, client::findIntergrade);
-    } else if (hint.contains("/")) {
+    } else if (hint.contains("/")) { // TODO: consider trying hybrids/intergrades for this case
       return dry ? "slash: " + hint : exploreHint(hint, client::findSlash);
     } else if (hint.startsWith("sp%20") || hint.endsWith("%20sp")  || hint.contains("%20sp.")) {
       return dry ? "spuh: " + hint : exploreHint(hint, client::findSpuh);
@@ -167,7 +176,7 @@ public final class EBirdExtractPurify {
       final String res = exploreHint(hint, client::findHybrid);
       return res == null ? exploreHint(hint, client::findIntergrade) : res;
     } else if (hint.contains("(") || hint.contains("subsp") || hint.contains("ssp")) {
-      final String newHint =  hint.replaceAll("\\bsubsp", "")
+      final String newHint =  hint.replaceAll("\\bsubsp", "") // FIXME: this doesn't look right
           .replace("ssp", "");
       if (dry) {
         return "issf-form: " + newHint;

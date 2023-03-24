@@ -48,21 +48,6 @@ class ExtractingVisitor extends AbstractVisitor {
     return this.plusVagueHints;
   }
 
-  private static String singularize(String s) {
-    if (s.endsWith("ies")) {
-      return s.substring(0, s.length() - 3);
-    } else if (s.endsWith("es")) {
-      return s.substring(0, s.length() - 2);
-    } else if (s.endsWith("s")) {
-      return s.substring(0, s.length() - 1);
-    } else if (s.endsWith("mice")) {
-      return s.replace("mice", "mouse");
-    } else if (s.endsWith("eese")) {
-      return s.replace("eese", "oose");
-    }
-    return s;
-  }
-
   private static String cleanHint(String s) {
     final StringBuilder sb = new StringBuilder(s.length() + 8);
     for (int i = 0; i < s.length(); i++) {
@@ -77,6 +62,19 @@ class ExtractingVisitor extends AbstractVisitor {
       }
     }
     return sb.toString();
+  }
+
+  private static String normalize(String s) {
+    // TODO: ed, ing
+    return s.replaceAll("greater", "great")
+        .replaceAll("species", "sp.")
+        .replaceAll("mice\\b", "mouse")
+        .replaceAll("eeses\\b", "oose")
+        .replaceAll("eese\\b", "oose")
+        .replaceAll("sss\\b", "ss")
+        .replaceAll("ies\\b", "")
+        .replaceAll("es\\b", "")
+        .replaceAll("s\\b", "");
   }
 
   @Override
@@ -101,12 +99,12 @@ class ExtractingVisitor extends AbstractVisitor {
   public void visit(CustomNode customNode) {
     if (customNode instanceof Hint) {
       if (customNode.getFirstChild() instanceof Text) {
-        final String filtered = cleanHint(singularize(((Text) customNode.getFirstChild()).getLiteral()));
+        final String filtered = normalize(cleanHint(((Text) customNode.getFirstChild()).getLiteral()));
         plusHints().add(filtered);
       }
     } else if (customNode instanceof VagueHint) {
       if (customNode.getFirstChild() instanceof Text) {
-        final String filtered = cleanHint(singularize(((Text) customNode.getFirstChild()).getLiteral()));
+        final String filtered = normalize(cleanHint(((Text) customNode.getFirstChild()).getLiteral()));
         plusVagueHints().add(filtered);
       }
     }

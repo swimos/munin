@@ -24,7 +24,10 @@ import swim.uri.UriQuery;
 class CommonUrlExtract {
 
   private static String sanitizeAllAboutBirdsHint(String raw) {
-    return raw.replace("_", "%20");
+    // TODO: ed, ing
+    return raw.replace("_", "%20")
+        .replaceAll("sss\\b", "ss")
+        .replaceAll("s\\b", "");
   }
 
   private static boolean forAllAboutBirds(UriPath path, Set<String> hints) {

@@ -81,13 +81,15 @@ public class ExtractParseSpec {
     final String body = "https://allaboutbirds.org/guide/Wilsons_Warbler/id " // species
         + "+oregon junco+ " // species-issf-form
         + "+dark-eyed junco (oregon)+ " // issf-form
-        + "+domestic Swan Goose+ " // domestic
+        + "+domestic Swan Geese+ " // domestic
         + "+red-shafted x yellow-shafted flicker+ " // intergrade
         + "+hybrid gilded/northern flicker+ " // hybrid
-        + "+sharp-shinned/cooper's hawk+ "
+        + "+sharp-shinned/cooper's hawk+ " // slash
+        + "+gull species+ " // spuh
         + "++Mallard (domestic)++"; // uncategorized
 
     final Extract extract = ExtractParse.parseComment(bareSuggestion(body));
+    System.out.println(extract.hints());
     final String[] result = EBirdExtractPurify.purifyDryRun(extract);
     for (String d : result) {
       System.out.println(d);

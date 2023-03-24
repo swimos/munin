@@ -20,6 +20,7 @@ import filethesebirds.munin.connect.reddit.RedditResponse;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.digest.Users;
+import filethesebirds.munin.digest.motion.HintCache;
 import java.util.Map;
 import swim.adapter.common.RelayException;
 import swim.adapter.common.ingress.IngestingAgent;
@@ -140,6 +141,7 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
     if (comments[0].id().equals(this.before)) {
       System.out.println("Foolishly lavishly fetched");
       this.softBeforeTimestamp = System.currentTimeMillis();
+      HintCache.prune();
       return false;
     }
     // Lavish fetch issued, bookmark was deleted, no new comments were posted
