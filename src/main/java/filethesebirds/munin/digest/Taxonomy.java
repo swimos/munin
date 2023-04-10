@@ -23,7 +23,7 @@ import java.util.Map;
 
 public final class Taxonomy {
 
-  private static final Map<String, String> TAXONOMY = new HashMap<>(32000);
+  private static final Map<String, String[]> TAXONOMY = new HashMap<>(32000);
   static {
     try (InputStream is = ConfigUtils.openConfigFile(System.getProperty("taxonomy.conf"),
             "/ebird-taxa.csv");
@@ -32,10 +32,10 @@ public final class Taxonomy {
       String line;
       while ((line = br.readLine()) != null) {
         final String[] split = line.split(",");
-        if (split.length == 2) {
+        if (split.length == 3) {
           final String code = split[0];
           if (codeIsValid(code)) {
-            TAXONOMY.put(code, split[1]);
+            TAXONOMY.put(code, new String[]{split[1], split[2]});
           }
         }
       }
@@ -63,7 +63,14 @@ public final class Taxonomy {
 
   public static String commonName(String code) {
     if (containsCode(code)) {
-      return TAXONOMY.get(code);
+      return TAXONOMY.get(code)[0];
+    }
+    return null;
+  }
+
+  public static String ordinal(String code) {
+    if (containsCode(code)) {
+      return TAXONOMY.get(code)[1];
     }
     return null;
   }

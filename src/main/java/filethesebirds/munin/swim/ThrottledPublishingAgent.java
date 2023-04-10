@@ -126,8 +126,7 @@ public class ThrottledPublishingAgent extends AbstractAgent {
       cancelTimer();
       return;
     }
-    final Map<String, Answer> snapshot = this.publishQueue.snapshot();
-    for (Map.Entry<String, Answer> entry : snapshot.entrySet()) {
+    for (Map.Entry<String, Answer> entry : this.publishQueue.entrySet()) {
       // be EXTRA sure before leaving a comment
       if (this.publishedAnswers.containsKey(entry.getKey())) {
         final Answer v = entry.getValue();

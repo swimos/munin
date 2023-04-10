@@ -60,7 +60,7 @@ public class RedditPasswordGrantProvider {
     try {
       resp = HttpUtils.fireRequest(executor,
           buildTokenFetchRequest(), BodyHandlers.ofString(), 3);
-    } catch (Throwable e) {
+    } catch (Exception e) {
       throw new RedditApiException("Failed to fetch token", e);
     }
     if (resp.statusCode() / 100 != 2) {

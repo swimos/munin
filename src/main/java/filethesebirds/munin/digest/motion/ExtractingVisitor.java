@@ -66,7 +66,8 @@ class ExtractingVisitor extends AbstractVisitor {
 
   private static String normalize(String s) {
     // TODO: ed, ing
-    return s.replaceAll("greater", "great")
+    return s.replaceAll("conure", "parakeet")
+        .replaceAll("greater", "great")
         .replaceAll("species", "sp.")
         .replaceAll("mice\\b", "mouse")
         .replaceAll("eeses\\b", "oose")

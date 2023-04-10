@@ -14,7 +14,6 @@
 
 package filethesebirds.munin.swim;
 
-import filethesebirds.munin.connect.ebird.EBirdApiException;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Forms;
@@ -24,8 +23,7 @@ import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.answer.Answers;
 import filethesebirds.munin.digest.motion.Extract;
 import filethesebirds.munin.digest.motion.ExtractParse;
-import filethesebirds.munin.digest.motion.EBirdExtractPurify;
-import filethesebirds.munin.digest.motion.Review;
+import filethesebirds.munin.swim.task.PhasedPurifyTask;
 import java.util.List;
 import java.util.Map;
 import swim.api.SwimLane;
@@ -33,8 +31,6 @@ import swim.api.agent.AbstractAgent;
 import swim.api.lane.CommandLane;
 import swim.api.lane.MapLane;
 import swim.api.lane.ValueLane;
-import swim.concurrent.AbstractTask;
-import swim.concurrent.TaskRef;
 import swim.structure.Form;
 import swim.structure.Record;
 import swim.structure.Text;
@@ -55,6 +51,7 @@ public class SubmissionAgent extends AbstractAgent {
   ValueLane<Answer> answer = valueLane()
       .valueForm(Forms.forAnswer())
       .didSet((n, o) -> {
+        System.out.println(nodeUri() + ": updated answer to " + n);
         this.status.set(merge(this.info.get(), n));
       });
 
@@ -139,8 +136,9 @@ public class SubmissionAgent extends AbstractAgent {
       return;
     }
     if (!extract.hints().isEmpty() || !extract.vagueHints().isEmpty()) {
-      final StaggeredPurifyAction action = new StaggeredPurifyAction(comment, extract);
-      if (!action.cueHintTransformations()) {
+      final PhasedPurifyTask action = new PhasedPurifyTask(this,
+          comment, extract, this.motions);
+      if (!action.cue()) {
         System.out.println(nodeUri() + ": failed to cue task for comment " + comment);
       }
       return;
@@ -181,80 +179,6 @@ public class SubmissionAgent extends AbstractAgent {
           .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
               : Forms.forSetString().mold(a.reviewers()).toValue());
     }
-  }
-
-  private class StaggeredPurifyAction {
-
-    private static final int MAX_EXPLORABLE_HINTS = 10;
-    private static final int MAX_FAILURES = 5;
-
-    private final Comment comment;
-    private volatile Extract soFar;
-    private volatile int hintsSoFar;
-    private volatile int failures;
-    private final TaskRef task;
-
-    private StaggeredPurifyAction(Comment comment1, Extract soFar1) {
-      this.comment = comment1;
-      this.soFar = soFar1;
-      this.hintsSoFar = 0;
-      this.task = asyncStage().task(new AbstractTask() {
-
-        @Override
-        public void runTask() {
-          while (!isComplete()) {
-            try {
-              setSoFar(EBirdExtractPurify.purifyOneHint(Shared.eBirdClient(), getSoFar()));
-              StaggeredPurifyAction.this.hintsSoFar++;
-            } catch (EBirdApiException e) {
-              if (++failures <= MAX_FAILURES) {
-                System.out.println(nodeUri() + ": exception in processing hint for comment " + comment
-                    + ", retrying in ~1 min");
-                setTimer(60000L + (int) (Math.random() * 30000),
-                    StaggeredPurifyAction.this.task::cue);
-              } else {
-                System.out.println(nodeUri() + ": exception in processing hint for comment " + comment
-                    + ", aborting.");
-              }
-              return;
-            }
-          }
-          // On success
-          final Motion purified = getSoFar().base();
-          if ((purified instanceof Review) || !purified.isEmpty()) {
-            System.out.println(nodeUri() + ": purified extract into " + purified);
-            final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
-            SubmissionAgent.this.motions.put(laneKey, purified);
-          } else {
-            System.out.println(nodeUri() + ": failed to purify " + comment);
-          }
-        }
-
-        @Override
-        public boolean taskWillBlock() {
-          return true;
-        }
-
-      });
-    }
-
-    private Extract getSoFar() {
-      return this.soFar;
-    }
-
-    private void setSoFar(Extract extract) {
-      this.soFar = extract;
-    }
-
-    private boolean isComplete() {
-      return this.hintsSoFar >= MAX_EXPLORABLE_HINTS
-          || EBirdExtractPurify.extractIsPurified(this.soFar);
-    }
-
-    private boolean cueHintTransformations() {
-      return this.task.cue();
-    }
-
   }
 
 }

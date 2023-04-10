@@ -15,7 +15,6 @@
 package filethesebirds.munin.digest.motion;
 
 import filethesebirds.munin.digest.Motion;
-import java.util.Set;
 
 /**
  * An extensively capable {@link Motion} that is only available to established

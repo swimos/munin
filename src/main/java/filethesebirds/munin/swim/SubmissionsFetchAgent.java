@@ -17,6 +17,7 @@ package filethesebirds.munin.swim;
 import filethesebirds.munin.connect.http.HttpConnectException;
 import filethesebirds.munin.connect.reddit.RedditApiException;
 import filethesebirds.munin.connect.reddit.RedditResponse;
+import filethesebirds.munin.connect.vault.VaultClient;
 import filethesebirds.munin.digest.Submission;
 import swim.adapter.common.RelayException;
 import swim.adapter.common.ingress.IngestingAgent;
@@ -79,6 +80,13 @@ public class SubmissionsFetchAgent extends IngestingAgent<RedditResponse<Submiss
         command("/submission/" + submission.id(), "info",
             Submission.form().mold(submission).toValue());
       }
+    }
+    // Can safely do this because we're already in an asyncStage block
+    try {
+      Shared.vaultClient().upsertSubmissions(submissions);
+    } catch (Exception e) {
+      new Exception(nodeUri() + ": failed to upsert", e).printStackTrace();
+      VaultClient.DRY.upsertSubmissions(submissions);
     }
   }
 

@@ -1,5 +1,3 @@
-# @kernel(class: 'swim.store.db.DbStoreKernel')
-
 munin: @fabric {
   @plane(class: "filethesebirds.munin.swim.MuninPlane")
   # Singletons

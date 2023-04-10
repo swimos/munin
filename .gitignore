@@ -6,5 +6,6 @@ credentials.txt
 build/
 out/
 *reddit-config.properties
+*vault-config.properties
 *ebird-taxa.txt
 *reviewers.txt

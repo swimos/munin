@@ -166,41 +166,53 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
     this.before = comments[0].id();
     this.beforeTimestamp = latestTimestampMillis;
     this.softBeforeTimestamp = this.beforeTimestamp;
-    for (int i = 0; i < comments.length; i++) {
-      if ("[deleted]".equals(comments[i].submissionAuthor())) {
-        command("/submission/" + comments[i].submissionId(), "expire",
-            Text.from("expire"));
-        this.liveSubmissions.remove(Long.parseLong(comments[i].submissionId(), 36));
+    boolean didPreempt = false;
+    for (Comment comment : comments) {
+      if (shouldDeferComment(comment)) {
         continue;
       }
-      if (Users.userIsNonparticipant(comments[i].author())) {
-        continue;
-      }
-      if (comments[i].body().startsWith("!rm") && Users.userIsAdmin(comments[i].author())) {
-        command("/submission/" + comments[i].submissionId(), "expire",
-            Text.from("expire"));
-        this.liveSubmissions.remove(Long.parseLong(comments[i].submissionId(), 36));
-        continue;
-      }
-      if (comments[i].id().equals(oldBefore) // found bookmark
-          || comments[i].createdUtc() * 1000L < oldBeforeTimestamp) { // or older
+      if (comment.id().equals(oldBefore) // found bookmark
+          || comment.createdUtc() * 1000L < oldBeforeTimestamp) { // or older
         return;
       }
-      final String subId36 = comments[i].submissionId();
+      final String subId36 = comment.submissionId();
       final long subId10 = Long.parseLong(subId36, 36);
-      System.out.println("New comment for submission " + subId36 + ": " + comments[i].id());
+      System.out.println("New comment for submission " + subId36 + ": " + comment.id());
       if (this.liveSubmissions.containsKey(subId10)) {
-        command("/submission/" + comments[i].submissionId(), "addNewComment",
-            Comment.form().mold(comments[i]).toValue());
+        command("/submission/" + comment.submissionId(), "addNewComment",
+            Comment.form().mold(comment).toValue());
       } else if (subId10 > this.oldestSubmission) {
-        System.out.println("Found comment for a new post within window, preempting fetch: " + subId36);
-        command("/submissionsFetch", "preemptFetch", Text.from("preempt"));
-        command("/submission/" + comments[i].submissionId(), "addNewComment",
-            Comment.form().mold(comments[i]).toValue());
+        System.out.println("Found comment for a new post within window: " + subId36);
+        if (!didPreempt) {
+          System.out.println("preempting submission fetch");
+          command("/submissionsFetch", "preemptFetch", Text.from("preempt"));
+          didPreempt = true;
+        }
+        command("/submission/" + comment.submissionId(), "addNewComment",
+            Comment.form().mold(comment).toValue());
       } else {
-        System.out.println("Comment received for expired post: " + comments[i]);
+        System.out.println("Comment received for expired post: " + comment);
       }
     }
+  }
+
+  private boolean shouldDeferComment(Comment comment) {
+    if ("[deleted]".equals(comment.submissionAuthor())) {
+      command("/submission/" + comment.submissionId(), "expire",
+          Text.from("expire"));
+      this.liveSubmissions.remove(Long.parseLong(comment.submissionId(), 36));
+      return true;
+    }
+    if (Users.userIsNonparticipant(comment.author())) {
+      return true;
+    }
+    if (comment.body().startsWith("!rm") && Users.userIsAdmin(comment.author())) {
+      command("/submission/" + comment.submissionId(), "expire",
+          Text.from("expire"));
+      this.liveSubmissions.remove(Long.parseLong(comment.submissionId(), 36));
+      return true;
+    }
+    return false;
   }
 
   @SwimLane("startFetching")
@@ -218,38 +230,47 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
   public void didStart() {
     System.out.println(nodeUri() + ": didStart");
     cancelPeriodicAtomicDuty(this.atomicRecurrentHandle);
-    schedulePeriodicAtomicDuty(() -> {
-      final long now = System.currentTimeMillis();
-      long lastExpired = -1;
-      for (Map.Entry<Long, Submission> entry : liveSubmissions) {
-        final Submission info = entry.getValue();
-        if (info == null) {
-          System.out.println("curious null: " + entry.getKey());
-          continue;
-        }
-        if (now - entry.getValue().createdUtc() * 1000 > MuninConstants.lookbackMillis()) {
-          lastExpired = Math.max(lastExpired, Long.parseLong(entry.getValue().id(), 36));
-          System.out.println("Will expire submission " + entry.getValue());
-          command("/submission/" + entry.getValue().id(), "expire",
-              Text.from("expire"));
-          this.liveSubmissions.remove(entry.getKey());
-        }
-      }
-      if (lastExpired > 0) {
-        if (this.liveSubmissions.isEmpty()) {
-          this.oldestSubmission = -1L;
-          this.latestSubmission = -1L;
-        } else {
-          for (Long key : this.liveSubmissions.keySet()) {
-            // FIXME: might not need this, depending on when the remove takes
-            if (key > lastExpired) {
-              this.oldestSubmission = key;
-              return;
-            }
+    schedulePeriodicAtomicDuty(this::pruneSubmissions, 1000L, EXPIRE_PERIOD_MILLIS);
+  }
+
+  private void pruneSubmissions() {
+    final long lastExpired = expireOldSubmissions();
+    if (lastExpired > 0) {
+      if (this.liveSubmissions.isEmpty()) {
+        this.oldestSubmission = -1L;
+        this.latestSubmission = -1L;
+      } else {
+        for (Long key : this.liveSubmissions.keySet()) {
+          if (key > lastExpired) {
+            this.oldestSubmission = key;
+            return;
           }
         }
       }
-    }, 1000L, EXPIRE_PERIOD_MILLIS);
+    }
+  }
+
+  // Returns the most recent submission id36, in base 10, that was expired due
+  // to old age by this method, or -1 if nothing was expired
+  private long expireOldSubmissions() {
+    final long now = System.currentTimeMillis();
+    long lastExpired = -1;
+    for (Map.Entry<Long, Submission> entry : liveSubmissions) {
+      final Submission info = entry.getValue();
+      if (info == null) {
+        System.out.println(nodeUri() + ": liveSubmissions probably failed to remove key: " + entry.getKey());
+        continue;
+      }
+      if (now - entry.getValue().createdUtc() * 1000 > MuninConstants.lookbackMillis()) {
+        lastExpired = Math.max(lastExpired, Long.parseLong(entry.getValue().id(), 36));
+        System.out.println("Will expire submission " + entry.getValue());
+        command("/submission/" + entry.getValue().id(), "expire",
+            Text.from("expire"));
+        this.liveSubmissions.remove(entry.getKey());
+      }
+      // TODO: confirm whether "else break;" is allowed here
+    }
+    return lastExpired;
   }
 
 }

@@ -25,6 +25,7 @@ public class Main {
 
   public static void main(String[] args) throws Exception {
     // Initialize external clients
+    Shared.loadVaultClient();
     Shared.loadEBirdClient();
     Shared.loadRedditClient();
 

@@ -14,6 +14,7 @@
 
 open module filethesebirds.munin {
   requires java.net.http;
+  requires transitive java.sql;
 
   requires swim.server;
   requires transitive swim.adapter.http;
@@ -23,4 +24,6 @@ open module filethesebirds.munin {
 
   requires org.apache.commons.text;
 
+  requires org.postgresql.jdbc;
+  requires com.zaxxer.hikari;
 }

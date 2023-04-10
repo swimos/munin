@@ -14,9 +14,10 @@
 
 package filethesebirds.munin.swim;
 
-import filethesebirds.munin.util.ConfigUtils;
 import filethesebirds.munin.connect.ebird.EBirdClient;
 import filethesebirds.munin.connect.reddit.RedditClient;
+import filethesebirds.munin.connect.vault.VaultClient;
+import filethesebirds.munin.util.ConfigUtils;
 import java.io.InputStream;
 import java.net.http.HttpClient;
 
@@ -34,6 +35,8 @@ public class Shared {
 
   private static RedditClient redditClient = null;
 
+  private static VaultClient vaultClient = null;
+
   public static HttpClient httpClient() {
     return HTTP_CLIENT;
   }
@@ -44,6 +47,10 @@ public class Shared {
 
   public static RedditClient redditClient() {
     return Shared.redditClient;
+  }
+
+  public static VaultClient vaultClient() {
+    return Shared.vaultClient;
   }
 
   public static void loadEBirdClient() {
@@ -65,6 +72,19 @@ public class Shared {
       Shared.redditClient = RedditClient.fromStream(httpClient(), is);
     } catch (Exception e) {
       throw new RuntimeException("Failed to load Reddit client", e);
+    }
+  }
+
+  public static void loadVaultClient() {
+    if (Shared.redditClient != null) {
+      throw new IllegalStateException("Multiple Reddit client loading forbidden");
+    }
+    try (InputStream is = ConfigUtils.openConfigFile(System.getProperty("vault.conf"), "/vault-config.properties")) {
+      Shared.vaultClient = VaultClient.fromStream(is);
+    } catch (Exception e) {
+      System.out.println("[WARN] Failed to load vault client (trace below). All intended queries will be logged, but not executed. Trace:");
+      e.printStackTrace();
+      Shared.vaultClient = VaultClient.DRY;
     }
   }
 

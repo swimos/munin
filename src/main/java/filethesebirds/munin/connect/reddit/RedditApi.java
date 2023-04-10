@@ -18,7 +18,7 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.time.Duration;
 
-class RedditApi {
+final class RedditApi {
 
   private RedditApi() {
   }
