@@ -74,7 +74,8 @@ public final class Publication {
     final String reviewers = publishableReviewers(ans.reviewers());
     return "Added taxa: " + taxa
         + ((reviewers == null) ? "" : ("\n\nReviewed by: " + reviewers))
-        + "\n\n^(I catalog answers to r/WhatsThisBird submissions.) [^(Learn how to use me)](https://gist.github.com/brohitbrose/be99a16ddc7a6a1bd9c1eef28d622564)^(.)";
+        + "\n\n^(I catalog submissions to r/WhatsThisBird.) "
+        + "[^(Learn how to use me)](https://gist.github.com/brohitbrose/be99a16ddc7a6a1bd9c1eef28d622564)^(.)";
   }
 
   public static Answer answerFromPublication(String pub) {

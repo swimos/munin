@@ -68,11 +68,11 @@ public final class Taxonomy {
     return null;
   }
 
-  public static String ordinal(String code) {
+  public static int ordinal(String code) {
     if (containsCode(code)) {
-      return TAXONOMY.get(code)[1];
+      return Integer.parseInt(TAXONOMY.get(code)[1]);
     }
-    return null;
+    return -1;
   }
 
   private Taxonomy() {

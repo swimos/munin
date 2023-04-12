@@ -21,6 +21,7 @@ import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.motion.HintCache;
+import java.util.Iterator;
 import java.util.Map;
 import swim.adapter.common.RelayException;
 import swim.adapter.common.ingress.IngestingAgent;
@@ -198,18 +199,14 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
 
   private boolean shouldDeferComment(Comment comment) {
     if ("[deleted]".equals(comment.submissionAuthor())) {
-      command("/submission/" + comment.submissionId(), "expire",
-          Text.from("expire"));
-      this.liveSubmissions.remove(Long.parseLong(comment.submissionId(), 36));
+      removeSubmission(comment.submissionId());
       return true;
     }
     if (Users.userIsNonparticipant(comment.author())) {
       return true;
     }
     if (comment.body().startsWith("!rm") && Users.userIsAdmin(comment.author())) {
-      command("/submission/" + comment.submissionId(), "expire",
-          Text.from("expire"));
-      this.liveSubmissions.remove(Long.parseLong(comment.submissionId(), 36));
+      removeSubmission(comment.submissionId());
       return true;
     }
     return false;
@@ -234,7 +231,7 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
   }
 
   private void pruneSubmissions() {
-    final long lastExpired = expireOldSubmissions();
+    final long lastExpired = expireSubmissions();
     if (lastExpired > 0) {
       if (this.liveSubmissions.isEmpty()) {
         this.oldestSubmission = -1L;
@@ -252,25 +249,40 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
 
   // Returns the most recent submission id36, in base 10, that was expired due
   // to old age by this method, or -1 if nothing was expired
-  private long expireOldSubmissions() {
+  private long expireSubmissions() {
     final long now = System.currentTimeMillis();
     long lastExpired = -1;
-    for (Map.Entry<Long, Submission> entry : liveSubmissions) {
+    final Iterator<Map.Entry<Long, Submission>> entryIter = this.liveSubmissions.entrySet().iterator();
+    for (boolean first = true; entryIter.hasNext(); ) {
+      Map.Entry<Long, Submission> entry = entryIter.next();
       final Submission info = entry.getValue();
       if (info == null) {
-        System.out.println(nodeUri() + ": liveSubmissions probably failed to remove key: " + entry.getKey());
+        System.out.println(nodeUri() + ": liveSubmissions possibly failed to remove key (see github:swimos/munin#1): " + entry.getKey());
+        if (first) {
+          System.out.println(nodeUri() + ": retrying removal of " + entry.getKey());
+          this.liveSubmissions.remove(entry.getKey());
+        }
         continue;
       }
       if (now - entry.getValue().createdUtc() * 1000 > MuninConstants.lookbackMillis()) {
         lastExpired = Math.max(lastExpired, Long.parseLong(entry.getValue().id(), 36));
         System.out.println("Will expire submission " + entry.getValue());
-        command("/submission/" + entry.getValue().id(), "expire",
-            Text.from("expire"));
-        this.liveSubmissions.remove(entry.getKey());
+        expireSubmission(entry.getValue().id(), entry.getKey());
       }
       // TODO: confirm whether "else break;" is allowed here
+      first = false;
     }
     return lastExpired;
+  }
+
+  private void expireSubmission(String id36, long id10) {
+    command("/submission/" + id36, "expire", Text.from("expire"));
+    this.liveSubmissions.remove(id10);
+  }
+
+  private void removeSubmission(String id36) {
+    command("/submission/" + id36, "remove", Text.from("remove"));
+    this.liveSubmissions.remove(Long.parseLong(id36, 36));
   }
 
 }

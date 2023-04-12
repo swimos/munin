@@ -26,7 +26,7 @@ import swim.warp.Envelope;
 
 public class MuninPolicy extends AbstractPolicy {
 
-  private MapDownlink<String, Value> downlink;
+  private final MapDownlink<String, Value> downlink;
 
   public MuninPolicy(PlaneContext plane) {
     this.downlink = plane.downlinkMap()

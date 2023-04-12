@@ -26,6 +26,11 @@ public final class HintCache {
 
   private static final ConcurrentHashMap<String, CacheValue> CACHE = new ConcurrentHashMap<>(MAX_ENTRIES);
 
+  private static String preprocessHint(String hint) {
+    // TODO
+    return hint.replace("-", "%20");
+  }
+
   public static String get(String hint) {
     final CacheValue val = CACHE.get(hint);
     if (val == null) {

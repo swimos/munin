@@ -1,2 +1,2 @@
-SWIM_MUNIN_OPTS="-Dswim.config=/etc/swim-munin/server.recon -Dreddit.conf=/etc/swim-munin/reddit-config.properties -Debird.conf=/etc/swim-munin/ebird-config.properties -Dreviewers.conf=/etc/swim-munin/reviewers.txt -Dnonparticipants.conf=/etc/swim-munin/nonparticipants.txt"
+SWIM_MUNIN_OPTS="-Dswim.config=/etc/swim-munin/server.recon -Dreddit.conf=/etc/swim-munin/reddit-config.properties -Debird.conf=/etc/swim-munin/ebird-config.properties -Dreviewers.conf=/etc/swim-munin/reviewers.txt -Dnonparticipants.conf=/etc/swim-munin/nonparticipants.txt -Dvault.conf=/etc/swim-munin/vault-config.properties"
 JVM_OPTS="-Xms1g -Xmx2g"

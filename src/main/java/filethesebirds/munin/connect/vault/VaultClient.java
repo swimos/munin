@@ -16,21 +16,23 @@ package filethesebirds.munin.connect.vault;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.util.ConfigUtils;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public abstract class VaultClient {
 
   public static final VaultClient DRY = new Dry();
 
-  protected abstract Connection getConnection() throws SQLException;
-
   public abstract void upsertSubmissions(Submission[] submissions);
 
-  public abstract void upsertObservations();
+  public abstract void assignObservations(String submissionId36, Answer answer);
+
+  public abstract void deleteSubmission(String submissionId36);
 
   public static VaultClient fromStream(InputStream is) {
     return new Pooled(
@@ -47,34 +49,62 @@ public abstract class VaultClient {
       this.source = source;
     }
 
-    @Override
-    protected Connection getConnection() throws SQLException {
+    private Connection getConnection() throws SQLException {
       return this.source.getConnection();
     }
 
     @Override
     public void upsertSubmissions(Submission[] submissions) {
-      try {
-        VaultApi.upsertSubmissions(getConnection(), submissions)
-            .executeBatch();
+      if (submissions == null || submissions.length == 0) {
+        return;
+      }
+      try (final Connection conn = getConnection()) {
+        conn.setAutoCommit(false);
+        final PreparedStatement statement = VaultApi.upsertSubmissions(conn, submissions);
+        if (statement != null) {
+          statement.executeBatch();
+          conn.commit();
+        }
       } catch (SQLException e) {
-        throw new RuntimeException("Failed to write to vault", e);
+        throw new RuntimeException("Failed to upsert vault submissions", e);
       }
     }
 
     @Override
-    public void upsertObservations() {
-
+    public void assignObservations(String submissionId36, Answer answer) {
+      if (answer == null || answer.taxa().isEmpty()) {
+        // TODO: should we clear observations still, since that's what the DRY variant does?
+        return;
+      }
+      try (final Connection conn = getConnection()) {
+        conn.setAutoCommit(false);
+        final PreparedStatement delete = VaultApi.deleteObservations(conn, submissionId36);
+        if (delete != null) {
+          delete.executeUpdate();
+        }
+        final PreparedStatement insert = VaultApi.insertObservations(conn, submissionId36, answer);
+        if (insert != null) {
+          insert.executeBatch();
+        }
+        if (insert != null || delete != null) {
+          conn.commit();
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException("Failed to assign vault observations", e);
+      }
     }
 
+    @Override
+    public void deleteSubmission(String submissionId36) {
+      try (final Connection conn = getConnection()) {
+        VaultApi.deleteSubmission(conn, submissionId36);
+      } catch (SQLException e) {
+        throw new RuntimeException("Failed to delete from vault submissions", e);
+      }
+    }
   }
 
   private static class Dry extends VaultClient {
-
-    @Override
-    public Connection getConnection() {
-      return null;
-    }
 
     @Override
     public void upsertSubmissions(Submission[] submissions) {
@@ -82,8 +112,16 @@ public abstract class VaultClient {
     }
 
     @Override
-    public void upsertObservations() {
+    public void assignObservations(String submissionId36, Answer answer) {
+      System.out.printf("Dry queries: "
+          + VaultApi.deleteObservationsQuery(submissionId36) + "%n"
+          + (answer == null || answer.taxa().isEmpty() ? ""
+              : VaultApi.insertObservationsQuery(submissionId36, answer) + "%n"));
+    }
 
+    @Override
+    public void deleteSubmission(String submissionId36) {
+      System.out.println("Dry query: " + VaultApi.deleteSubmissionQuery(submissionId36));
     }
 
   }

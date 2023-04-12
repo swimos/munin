@@ -30,7 +30,7 @@ public class RedditPasswordGrantProvider {
 
   private static final URI AUTH_ENDPOINT = URI.create("https://www.reddit.com/api/v1/access_token");
   private static final String POST_DATA_FMT = "grant_type=password&username=%s&password=%s";
-  private static final long TOKEN_FETCH_TIMEOUT_MILLIS = 3000L;
+  private static final long TOKEN_FETCH_TIMEOUT_MILLIS = 6000L;
 
   private final RedditCredentials credentials;
 

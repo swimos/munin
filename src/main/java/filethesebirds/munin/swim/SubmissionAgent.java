@@ -89,11 +89,17 @@ public class SubmissionAgent extends AbstractAgent {
   CommandLane<Value> expire = this.<Value>commandLane()
       .onCommand(v -> {
         if (v.isDistinct()) {
-          redactJoins();
-          this.motions.clear();
-          this.status.set(Value.absent());
-          this.answer.set(null);
-          this.info.set(null);
+          expireJoins();
+          clearLanes();
+        }
+      });
+
+  @SwimLane("remove")
+  CommandLane<Value> remove = this.<Value>commandLane()
+      .onCommand(v -> {
+        if (v.isDistinct()) {
+          removeJoins();
+          clearLanes();
         }
       });
 
@@ -154,9 +160,21 @@ public class SubmissionAgent extends AbstractAgent {
     command("/commentsFetch", "addLiveSubmission", getProp("id"));
   }
 
-  private void redactJoins() {
+  private void removeJoins() {
     command("/submissions", "unsubscribe", Text.from(nodeUri().toString()));
-    command("/throttledPublish", "unsubscribe", Text.from(nodeUri().toString()));
+    command("/throttledPublish", "removeSubmission", Text.from(nodeUri().toString()));
+  }
+
+  private void expireJoins() {
+    command("/submissions", "unsubscribe", Text.from(nodeUri().toString()));
+    command("/throttledPublish", "expireSubmission", Text.from(nodeUri().toString()));
+  }
+
+  private void clearLanes() {
+    this.motions.clear();
+    this.status.set(Value.absent());
+    this.answer.set(null);
+    this.info.set(null);
   }
 
   private static Value merge(Submission s, Answer a) {

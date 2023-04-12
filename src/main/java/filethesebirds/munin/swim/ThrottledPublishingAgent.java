@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.connect.vault.VaultClient;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.answer.Forms;
@@ -44,7 +45,6 @@ public class ThrottledPublishingAgent extends AbstractAgent {
       .keyForm(Form.forString())
       .valueForm(Form.forValue())
       .didUpdate((k, n, o) -> {
-        System.out.println(nodeUri() + ": didUpdate " + n);
         if (n == null || !n.isDistinct()) {
           return;
         }
@@ -76,11 +76,35 @@ public class ThrottledPublishingAgent extends AbstractAgent {
             .open();
       });
 
-  @SwimLane("unsubscribe")
-  private CommandLane<String> unsubscribe = this.<String>commandLane()
+  @SwimLane("expireSubmission")
+  private CommandLane<String> expireSubmission = this.<String>commandLane()
+      .onCommand(uri -> {
+        final Answer ans = this.publishQueue.remove(uri);
+        if (ans != null) {
+          System.out.println(nodeUri() + ": expired <" + uri + ", " + ans + "> before agent could publish comment");
+        }
+        final Value v = this.publishedAnswers.remove(uri);
+        final Answer answer = (ans != null) ? ans : Forms.forAnswer().cast(v.get("answer"));
+        final String submissionId36 = uri.substring(uri.lastIndexOf("/") + 1);
+        try {
+          Shared.vaultClient().assignObservations(submissionId36, answer);
+        } catch (Exception e) {
+          VaultClient.DRY.assignObservations(submissionId36, answer);
+        }
+        this.answers.remove(uri);
+      });
+
+  @SwimLane("removeSubmission")
+  private CommandLane<String> removeSubmission = this.<String>commandLane()
       .onCommand(uri -> {
         this.publishQueue.remove(uri);
         this.publishedAnswers.remove(uri);
+        final String submissionId36 = uri.substring(uri.lastIndexOf("/") + 1);
+        try {
+          Shared.vaultClient().deleteSubmission(submissionId36);
+        } catch (Exception e) {
+          VaultClient.DRY.deleteSubmission(submissionId36);
+        }
         this.answers.remove(uri);
       });
 
@@ -134,40 +158,43 @@ public class ThrottledPublishingAgent extends AbstractAgent {
         final Answer answer = Forms.forAnswer().cast(publishedAnswer.get("answer"));
         if (!answer.taxa().equals(v.taxa()) || !answer.reviewers().equals(v.reviewers())) {
           // edit an existing comment
-          performDuty(() -> {
-            try {
-              final Comment comment = Shared.redditClient().publishEditEditusertext(publishedAnswer.get("id").stringValue(),
-                  Publication.publicationFromAnswer(v)).essence();
-              System.out.println("edited comment to " + comment);
-              ThrottledPublishingAgent.this.publishedAnswers.put(entry.getKey(),
-                  Record.create(2).slot("id", "t1_" + comment.id())
-                      .slot("answer", Forms.forAnswer().mold(v).toValue()));
-            } catch (Exception e) {
-              new Exception("Failed to edit comment " + publishedAnswer.get("id").stringValue(), e)
-                  .printStackTrace();
-            }
-          });
+          performDuty(() -> editCommentDuty(publishedAnswer.get("id").stringValue(), entry.getKey(), v));
         } else {
           System.out.println(nodeUri() + ": didn't publish something in queue " + entry.getValue());
           this.publishQueue.remove(entry.getKey());
         }
       } else {
         // create a new comment
-        performDuty(() -> {
-          try {
-            final Comment comment = Shared.redditClient().publishAnyComment("t3_"
-                    + entry.getKey().substring(entry.getKey().lastIndexOf('/') + 1),
-                Publication.publicationFromAnswer(entry.getValue())).essence();
-            ThrottledPublishingAgent.this.publishedAnswers.put(entry.getKey(),
-                Record.create(2).slot("id", "t1_" + comment.id())
-                    .slot("answer", Forms.forAnswer().mold(entry.getValue()).toValue()));
-          } catch (Exception e) {
-            new Exception("Failed to publish to " + entry.getKey(), e)
-                .printStackTrace();
-          }
-        });
-        return;
+        performDuty(() -> createCommentDuty(entry));
       }
+    }
+  }
+
+  private void createCommentDuty(Map.Entry<String, Answer> entry) {
+    try {
+      final Comment comment = Shared.redditClient().publishAnyComment("t3_"
+              + entry.getKey().substring(entry.getKey().lastIndexOf('/') + 1),
+          Publication.publicationFromAnswer(entry.getValue())).essence();
+      ThrottledPublishingAgent.this.publishedAnswers.put(entry.getKey(),
+          Record.create(2).slot("id", "t1_" + comment.id())
+              .slot("answer", Forms.forAnswer().mold(entry.getValue()).toValue()));
+    } catch (Exception e) {
+      new Exception("Failed to publish to " + entry.getKey(), e)
+          .printStackTrace();
+    }
+  }
+
+  private void editCommentDuty(String commentId36, String submissionId36, Answer toPublish) {
+    try {
+      final Comment comment = Shared.redditClient().publishEditEditusertext(commentId36,
+          Publication.publicationFromAnswer(toPublish)).essence();
+      System.out.println("edited comment to " + comment);
+      ThrottledPublishingAgent.this.publishedAnswers.put(submissionId36,
+          Record.create(2).slot("id", "t1_" + comment.id())
+              .slot("answer", Forms.forAnswer().mold(toPublish).toValue()));
+    } catch (Exception e) {
+      new Exception("Failed to edit comment " + commentId36, e)
+          .printStackTrace();
     }
   }
 

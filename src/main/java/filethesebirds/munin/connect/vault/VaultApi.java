@@ -14,7 +14,9 @@
 
 package filethesebirds.munin.connect.vault;
 
+import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Submission;
+import filethesebirds.munin.digest.Taxonomy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -24,6 +26,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
 
 final class VaultApi {
 
@@ -95,6 +98,114 @@ final class VaultApi {
         submission.karma(),
         submission.commentCount(),
         submission.title().replace("'", "''"));
+  }
+
+  private static final String DELETE_OBSERVATIONS_PREFIX = "DELETE FROM observations"
+      + " WHERE submission_id = ";
+
+  static PreparedStatement deleteObservations(Connection conn, String submissionId36)
+      throws SQLException {
+    final long submissionId;
+    try {
+      submissionId = Long.parseLong(submissionId36, 36);
+    } catch (Exception e) {
+      return null;
+    }
+    final PreparedStatement st = conn.prepareStatement(DELETE_OBSERVATIONS_PREFIX + "?;");
+    st.setLong(1, submissionId);
+    return st;
+  }
+
+  static String deleteObservationsQuery(String submissionId36) {
+    final long submissionId;
+    try {
+      submissionId = Long.parseLong(submissionId36, 36);
+    } catch (Exception e) {
+      return null;
+    }
+    return String.format(DELETE_OBSERVATIONS_PREFIX + "%d;", submissionId);
+  }
+
+  private static final String INSERT_OBSERVATIONS_PREFIX = "INSERT INTO observations"
+      + " SELECT val.tax_ordinal, val.submission_id, submissions.upload_date"
+      + " FROM (VALUES";
+  private static final String INSERT_OBSERVATIONS_SUFFIX = ") val (tax_ordinal, submission_id)"
+      + " JOIN submissions USING (submission_id);";
+
+  static PreparedStatement insertObservations(Connection conn, String submissionId36, Answer answer)
+      throws SQLException {
+    if (answer == null || answer.taxa().isEmpty()) {
+      return null;
+    }
+    final long submissionId;
+    try {
+      submissionId = Long.parseLong(submissionId36, 36);
+    } catch (Exception e) {
+      return null;
+    }
+    final PreparedStatement st = conn.prepareStatement(INSERT_OBSERVATIONS_PREFIX
+        + " (?, ?)" + INSERT_OBSERVATIONS_SUFFIX);
+    for (String code : answer.taxa()) {
+      final int ordinal = Taxonomy.ordinal(code);
+      if (ordinal < 0) {
+        st.close();
+        return null;
+      }
+      st.setInt(1, ordinal);
+      st.setLong(2, submissionId);
+      st.addBatch();
+    }
+    return st;
+  }
+
+  static String insertObservationsQuery(String submissionId36, Answer answer) {
+    final long submissionId;
+    try {
+      submissionId = Long.parseLong(submissionId36, 36);
+    } catch (Exception e) {
+      return null;
+    }
+    final String repeatFmt = " (%d, %d)";
+    if (answer.taxa().isEmpty()) {
+      return null;
+    }
+    final StringBuilder sb = new StringBuilder(128);
+    sb.append(INSERT_OBSERVATIONS_PREFIX);
+    final Iterator<String> taxaIter = answer.taxa().iterator();
+    sb.append(formatRepeatUpsertObservation(repeatFmt, taxaIter.next(), submissionId));
+    while (taxaIter.hasNext()) {
+      sb.append(formatRepeatUpsertObservation("," + repeatFmt, taxaIter.next(), submissionId));
+    }
+    sb.append(INSERT_OBSERVATIONS_SUFFIX);
+    return sb.toString();
+  }
+
+  private static String formatRepeatUpsertObservation(String fmt, String taxon, long submissionId) {
+    return String.format(fmt,
+        Taxonomy.ordinal(taxon),
+        submissionId);
+  }
+
+  static PreparedStatement deleteSubmission(Connection conn, String submissionId36)
+      throws SQLException {
+    final long submissionId;
+    try {
+      submissionId = Long.parseLong(submissionId36, 36);
+    } catch (Exception e) {
+      return null;
+    }
+    final PreparedStatement st = conn.prepareStatement("DELETE FROM submissions WHERE submission_id = ?;");
+    st.setLong(1, submissionId);
+    return st;
+  }
+
+  static String deleteSubmissionQuery(String submissionId36) {
+    try {
+      return "DELETE FROM submissions WHERE submission_id = "
+          +  Long.parseLong(submissionId36, 36) + ';';
+    } catch (Exception e) {
+      return null;
+    }
   }
 
 }
