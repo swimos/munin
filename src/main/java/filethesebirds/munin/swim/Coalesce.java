@@ -205,7 +205,7 @@ public class Coalesce {
             listCommentForm.mold(batches.get(submission.id())).toValue());
         Thread.sleep(1200);
       } else {
-        System.out.println("Mildly problematic submission: " + submission.id());
+        System.out.println("Problematic submission (update this by hand): " + submission.id());
       }
     }
     // start periodic fetch logic

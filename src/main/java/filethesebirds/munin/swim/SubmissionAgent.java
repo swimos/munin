@@ -53,6 +53,7 @@ public class SubmissionAgent extends AbstractAgent {
       .didSet((n, o) -> {
         System.out.println(nodeUri() + ": updated answer to " + n);
         this.status.set(merge(this.info.get(), n));
+        Shared.vaultClient().assignObservations(getProp("id").stringValue(), n);
       });
 
   @SwimLane("status")

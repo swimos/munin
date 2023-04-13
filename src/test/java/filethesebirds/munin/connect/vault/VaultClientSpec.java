@@ -1,8 +1,12 @@
 package filethesebirds.munin.connect.vault;
 
+import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Forms;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.util.ConfigUtils;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import org.testng.annotations.Test;
 import swim.recon.Recon;
 import swim.structure.Value;
@@ -40,9 +44,6 @@ public class VaultClientSpec {
         new Submission("ybq5qc", "This is from one of my illustrated Harry Potter books. Are all these owls based on real species? I recognize a couple of them. What do you guys thinks?",
             Submission.Location.UNKNOWN, 	"https://b.thumbs.redditmedia.com/2dY9xT2P1dyi61uZw4OKBwgVlsQZCX6kF11gQElZzdc.jpg",
             1666552177, 237, 15),
-        new Submission("12j7czi", "Minneapolis, MN - A fowl circus",
-            Submission.Location.NORTH_AMERICA, "https://b.thumbs.redditmedia.com/pclI6AJ60h1t-nsVhd2Ly6M-dHvYWbS7ehbGscthiKw.jpg",
-            1681267777, 8, 10)
     };
     client.upsertSubmissions(submissions);
     client.upsertSubmissions(submissions); // idempotent
@@ -51,6 +52,29 @@ public class VaultClientSpec {
     client.assignObservations("ybm8bf", Forms.forAnswer().cast(Recon.parse("@answer{taxa:{flycat1},reviewers:{kiwikiu,brohitbrose}}")));
 
     client.assignObservations("12j7czi", Forms.forAnswer().cast(Recon.parse("@answer{taxa:{redhea,lessca,rinduc,comgol,rebmer},reviewers:{brohitbrose}}")));
+    final Submission[] lateSubmission = new Submission[]{
+        new Submission("12j7czi", "Minneapolis, MN - A fowl circus",
+            Submission.Location.NORTH_AMERICA, "https://b.thumbs.redditmedia.com/pclI6AJ60h1t-nsVhd2Ly6M-dHvYWbS7ehbGscthiKw.jpg",
+            1681267777, 8, 10)
+    };
+    client.upsertSubmissions(lateSubmission);
   }
+
+//  @Test
+//  public void gross() {
+//    try (InputStream is = ConfigUtils.openConfigFile("/gross.txt", "/gross.txt");
+//        InputStreamReader isr = new InputStreamReader(is);
+//        BufferedReader br = new BufferedReader(isr)) {
+//      br.lines().forEach(l -> {
+//        final int anchor = l.indexOf(",");
+//        if (anchor < 0) return;
+//        final String id36 = l.substring(0, anchor);
+//        final Answer ans = Forms.forAnswer().cast(Recon.parse(l.substring(anchor + 1)));
+//        System.out.println(VaultApi.deleteObservationsQuery(id36));
+//        System.out.println(VaultApi.insertObservationsQuery(id36, ans));
+//      });
+//    } catch (Exception e) {
+//    }
+//  }
 
 }

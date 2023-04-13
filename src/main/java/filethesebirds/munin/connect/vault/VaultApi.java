@@ -45,7 +45,7 @@ final class VaultApi {
     return new Timestamp(epoch * 1000);
   }
 
-  private static final String UPSERT_SUBMISSIONS_PREFIX = "INSERT into SUBMISSIONS VALUES";
+  private static final String UPSERT_SUBMISSIONS_PREFIX = "INSERT into submissions VALUES";
   private static final String UPSERT_SUBMISSIONS_SUFFIX = " ON CONFLICT (submission_id) DO UPDATE SET"
       + " location = EXCLUDED.location,"
       + " upload_date = EXCLUDED.upload_date,"
@@ -98,6 +98,28 @@ final class VaultApi {
         submission.karma(),
         submission.commentCount(),
         submission.title().replace("'", "''"));
+  }
+
+  private static final String CREATE_PLACEHOLDER_SUBMISSION_PREFIX = "INSERT INTO submissions (submission_id) VALUES";
+
+  static String createPlaceholderSubmissionQuery(String submissionId36) {
+    return String.format(CREATE_PLACEHOLDER_SUBMISSION_PREFIX + " (%d) ON CONFLICT DO NOTHING;",
+        Long.parseLong(submissionId36, 36));
+  }
+
+  static PreparedStatement createPlaceholderSubmission(Connection conn, String submissionId36)
+      throws SQLException {
+    final long submissionId;
+    try {
+      submissionId = Long.parseLong(submissionId36, 36);
+    } catch (Exception e) {
+      return null;
+    }
+    final String template = CREATE_PLACEHOLDER_SUBMISSION_PREFIX
+        + " (?) ON CONFLICT DO NOTHING;";
+    final PreparedStatement st = conn.prepareStatement(template);
+    st.setLong(1, submissionId);
+    return st;
   }
 
   private static final String DELETE_OBSERVATIONS_PREFIX = "DELETE FROM observations"

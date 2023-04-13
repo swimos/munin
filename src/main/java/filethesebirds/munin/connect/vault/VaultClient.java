@@ -78,6 +78,10 @@ public abstract class VaultClient {
       }
       try (final Connection conn = getConnection()) {
         conn.setAutoCommit(false);
+        final PreparedStatement placeholder = VaultApi.createPlaceholderSubmission(conn, submissionId36);
+        if (placeholder != null) {
+          placeholder.executeUpdate();
+        }
         final PreparedStatement delete = VaultApi.deleteObservations(conn, submissionId36);
         if (delete != null) {
           delete.executeUpdate();
@@ -86,7 +90,7 @@ public abstract class VaultClient {
         if (insert != null) {
           insert.executeBatch();
         }
-        if (insert != null || delete != null) {
+        if (placeholder != null || insert != null || delete != null) {
           conn.commit();
         }
       } catch (SQLException e) {
@@ -97,7 +101,12 @@ public abstract class VaultClient {
     @Override
     public void deleteSubmission(String submissionId36) {
       try (final Connection conn = getConnection()) {
-        VaultApi.deleteSubmission(conn, submissionId36);
+        conn.setAutoCommit(false);
+        final PreparedStatement st = VaultApi.deleteSubmission(conn, submissionId36);
+        if (st != null) {
+          st.executeUpdate();
+        }
+        conn.commit();
       } catch (SQLException e) {
         throw new RuntimeException("Failed to delete from vault submissions", e);
       }
