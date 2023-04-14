@@ -49,7 +49,7 @@ public class SubmissionAgent extends AbstractAgent {
         this.status.set(merge(n, ans));
         if ((o == null || o.id() == null || o.id().isEmpty())
             && (ans != null && !ans.taxa().isEmpty())) {
-          new AbstractTask() {
+          asyncStage().task(new AbstractTask() {
 
             @Override
             public void runTask() {
@@ -61,7 +61,7 @@ public class SubmissionAgent extends AbstractAgent {
               return true;
             }
 
-          }.cue();
+          }).cue();
         }
       });
 
@@ -71,7 +71,7 @@ public class SubmissionAgent extends AbstractAgent {
       .didSet((n, o) -> {
         System.out.println(nodeUri() + ": updated answer to " + n);
         this.status.set(merge(this.info.get(), n));
-        new AbstractTask() {
+        asyncStage().task(new AbstractTask() {
 
           @Override
           public void runTask() {
@@ -83,7 +83,7 @@ public class SubmissionAgent extends AbstractAgent {
             return true;
           }
 
-        }.cue();
+        }).cue();
       });
 
   @SwimLane("status")
