@@ -14,11 +14,17 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.digest.Forms;
 import swim.api.SwimLane;
 import swim.api.agent.AbstractAgent;
+import swim.api.http.HttpLane;
 import swim.api.lane.CommandLane;
 import swim.api.lane.JoinValueLane;
 import swim.api.lane.MapLane;
+import swim.http.HttpResponse;
+import swim.http.HttpStatus;
+import swim.http.MediaType;
+import swim.json.Json;
 import swim.structure.Form;
 import swim.structure.Value;
 
@@ -71,6 +77,12 @@ public class SubmissionsAgent extends AbstractAgent {
 
   @SwimLane("unanswered")
   MapLane<String, Value> unanswered = mapLane();
+
+  @SwimLane("api/unanswered")
+  HttpLane<Value> unansweredApi = this.<Value>httpLane()
+      .doRespond(request -> HttpResponse.create(HttpStatus.OK)
+          .body(Json.toString(Forms.forSetString().mold(this.unanswered.keySet()).toValue()),
+              MediaType.applicationJson()));
 
   @SwimLane("unreviewed")
   MapLane<String, Value> unreviewed = mapLane();
