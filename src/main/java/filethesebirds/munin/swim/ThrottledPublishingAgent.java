@@ -86,12 +86,14 @@ public class ThrottledPublishingAgent extends AbstractAgent {
         final Value v = this.publishedAnswers.remove(uri);
         final Answer answer = (ans != null) ? ans : Forms.forAnswer().cast(v.get("answer"));
         final String submissionId36 = uri.substring(uri.lastIndexOf("/") + 1);
-        try {
-          Shared.vaultClient().assignObservations(submissionId36, answer);
-        } catch (Exception e) {
-          VaultClient.DRY.assignObservations(submissionId36, answer);
-        }
         this.answers.remove(uri);
+        performDuty(() -> {
+          try {
+            Shared.vaultClient().assignObservations(submissionId36, answer);
+          } catch (Exception e) {
+            VaultClient.DRY.assignObservations(submissionId36, answer);
+          }
+        });
       });
 
   @SwimLane("removeSubmission")
@@ -100,12 +102,14 @@ public class ThrottledPublishingAgent extends AbstractAgent {
         this.publishQueue.remove(uri);
         this.publishedAnswers.remove(uri);
         final String submissionId36 = uri.substring(uri.lastIndexOf("/") + 1);
-        try {
-          Shared.vaultClient().deleteSubmission(submissionId36);
-        } catch (Exception e) {
-          VaultClient.DRY.deleteSubmission(submissionId36);
-        }
         this.answers.remove(uri);
+        performDuty(() -> {
+          try {
+            Shared.vaultClient().deleteSubmission(submissionId36);
+          } catch (Exception e) {
+            VaultClient.DRY.deleteSubmission(submissionId36);
+          }
+        });
       });
 
   @SwimLane("addPublisherComment")

@@ -31,6 +31,7 @@ import swim.api.agent.AbstractAgent;
 import swim.api.lane.CommandLane;
 import swim.api.lane.MapLane;
 import swim.api.lane.ValueLane;
+import swim.concurrent.AbstractTask;
 import swim.structure.Form;
 import swim.structure.Record;
 import swim.structure.Text;
@@ -44,7 +45,24 @@ public class SubmissionAgent extends AbstractAgent {
   ValueLane<Submission> info = valueLane()
       .valueForm(Submission.form())
       .didSet((n, o) -> {
-        this.status.set(merge(n, this.answer.get()));
+        final Answer ans = this.answer.get();
+        this.status.set(merge(n, ans));
+        if ((o == null || o.id() == null || o.id().isEmpty())
+            && (ans != null && !ans.taxa().isEmpty())) {
+          new AbstractTask() {
+
+            @Override
+            public void runTask() {
+              Shared.vaultClient().assignObservations(getProp("id").stringValue(), ans);
+            }
+
+            @Override
+            public boolean taskWillBlock() {
+              return true;
+            }
+
+          }.cue();
+        }
       });
 
   @SwimLane("answer")
@@ -53,7 +71,19 @@ public class SubmissionAgent extends AbstractAgent {
       .didSet((n, o) -> {
         System.out.println(nodeUri() + ": updated answer to " + n);
         this.status.set(merge(this.info.get(), n));
-        Shared.vaultClient().assignObservations(getProp("id").stringValue(), n);
+        new AbstractTask() {
+
+          @Override
+          public void runTask() {
+            Shared.vaultClient().assignObservations(getProp("id").stringValue(), n);
+          }
+
+          @Override
+          public boolean taskWillBlock() {
+            return true;
+          }
+
+        }.cue();
       });
 
   @SwimLane("status")

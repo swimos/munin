@@ -161,7 +161,6 @@ public class CommentsFetchAgent extends IngestingAgent<RedditResponse<Comment[]>
     // Either lavish or basic fetch issued, bookmark possibly deleted, new
     // comments were posted
     final long latestTimestampMillis = comments[0].createdUtc() * 1000L;
-    System.out.println("updated 'before' state");
     final String oldBefore = this.before;
     final long oldBeforeTimestamp = this.beforeTimestamp;
     this.before = comments[0].id();
