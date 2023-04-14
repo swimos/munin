@@ -14,7 +14,8 @@
 
 package filethesebirds.munin.swim;
 
-import filethesebirds.munin.digest.Forms;
+import java.util.Iterator;
+import java.util.Set;
 import swim.api.SwimLane;
 import swim.api.agent.AbstractAgent;
 import swim.api.http.HttpLane;
@@ -24,7 +25,6 @@ import swim.api.lane.MapLane;
 import swim.http.HttpResponse;
 import swim.http.HttpStatus;
 import swim.http.MediaType;
-import swim.json.Json;
 import swim.structure.Form;
 import swim.structure.Value;
 
@@ -80,9 +80,19 @@ public class SubmissionsAgent extends AbstractAgent {
 
   @SwimLane("api/unanswered")
   HttpLane<Value> unansweredApi = this.<Value>httpLane()
-      .doRespond(request -> HttpResponse.create(HttpStatus.OK)
-          .body(Json.toString(Forms.forSetString().mold(this.unanswered.keySet()).toValue()),
-              MediaType.applicationJson()));
+      .doRespond(request -> {
+        final Set<String> ids = this.unanswered.keySet();
+        if (ids.isEmpty()) {
+          return HttpResponse.create(HttpStatus.OK);
+        }
+        final Iterator<String> iter = ids.iterator();
+        StringBuilder result = new StringBuilder("https://www.reddit.com/by_id/");
+        for (int i = 0; i < 20 && iter.hasNext(); i++) {
+          result.append("t3_").append(iter.next()).append(",");
+        }
+        result.deleteCharAt(result.length() - 1);
+        return HttpResponse.create(HttpStatus.OK).body(result.toString(), MediaType.textPlain());
+      });
 
   @SwimLane("unreviewed")
   MapLane<String, Value> unreviewed = mapLane();
