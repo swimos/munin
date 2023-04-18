@@ -100,7 +100,10 @@ public class SubmissionsAgent extends AbstractAgent {
     }
     StringBuilder url = new StringBuilder("https://www.reddit.com/by_id/");
     for (int i = 0; i < 20 && ids.hasNext(); i++) {
-      url.append("t3_").append(ids.next());
+      url.append("t3_").append(ids.next()).append(',');
+    }
+    if (url.charAt(url.length() - 1) == ',') {
+      url.deleteCharAt(url.length() - 1);
     }
     final String toString = url.toString();
     return String.format("<li><a href=%s>link %d</a>", toString, linkId);
