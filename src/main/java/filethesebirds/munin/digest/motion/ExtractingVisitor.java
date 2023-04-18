@@ -49,6 +49,7 @@ class ExtractingVisitor extends AbstractVisitor {
   }
 
   private static String cleanHint(String s) {
+    s = s.trim();
     final StringBuilder sb = new StringBuilder(s.length() + 8);
     for (int i = 0; i < s.length(); i++) {
       final char c = s.charAt(i);
@@ -66,8 +67,11 @@ class ExtractingVisitor extends AbstractVisitor {
 
   private static String normalize(String s) {
     // TODO: ed, ing
-    return s.replaceAll("conure", "parakeet")
+    return s.replaceAll("european", "eur")
+        .replaceAll("eurasian", "eur")
+        .replaceAll("conure", "parakeet")
         .replaceAll("greater", "great")
+        .replaceAll("vermillion", "vermilion")
         .replaceAll("species", "sp.")
         .replaceAll("mice\\b", "mouse")
         .replaceAll("eeses\\b", "oose")

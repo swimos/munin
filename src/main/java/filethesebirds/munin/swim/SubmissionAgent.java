@@ -131,6 +131,20 @@ public class SubmissionAgent extends AbstractAgent {
         if (v.isDistinct()) {
           removeJoins();
           clearLanes();
+          // TODO: consider moving the logic from ThrottledPublishingAgent into here
+//          asyncStage().task(new AbstractTask() {
+//
+//            @Override
+//            public void runTask() {
+//              Shared.vaultClient().deleteSubmission(getProp("id").stringValue());
+//            }
+//
+//            @Override
+//            public boolean taskWillBlock() {
+//              return true;
+//            }
+//
+//          }).cue();
         }
       });
 

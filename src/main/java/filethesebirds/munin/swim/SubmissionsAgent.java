@@ -80,19 +80,31 @@ public class SubmissionsAgent extends AbstractAgent {
 
   @SwimLane("api/unanswered")
   HttpLane<Value> unansweredApi = this.<Value>httpLane()
-      .doRespond(request -> {
-        final Set<String> ids = this.unanswered.keySet();
-        if (ids.isEmpty()) {
-          return HttpResponse.create(HttpStatus.OK);
-        }
-        final Iterator<String> iter = ids.iterator();
-        StringBuilder result = new StringBuilder("https://www.reddit.com/by_id/");
-        for (int i = 0; i < 20 && iter.hasNext(); i++) {
-          result.append("t3_").append(iter.next()).append(",");
-        }
-        result.deleteCharAt(result.length() - 1);
-        return HttpResponse.create(HttpStatus.OK).body(result.toString(), MediaType.textPlain());
-      });
+      .doRespond(request -> HttpResponse.create(HttpStatus.OK)
+          .body(body(this.unanswered.keySet()), MediaType.textHtml()));
+
+  private static String body(Set<String> ids) {
+    final Iterator<String> itr = ids.iterator();
+    String oneLink = oneLink(itr, 1);
+    StringBuilder links = new StringBuilder();
+    for (int i = 1; oneLink != null; i++, oneLink = oneLink(itr, i)) {
+      links.append(oneLink);
+    }
+    return String.format("<!doctypehtml><title>munin/unanswered</title><h2>Recent Uncatalogued Submissions</h2><div><h3>Links</h3><ul>%s</ul></div><div><h3>Notes</h3><ul><li>The links utilize Reddit's <i>by_id</i> API to provide uncataloged submissions from the last 36 hours ordered chronologically, 20 submissions per link.<li>The links <i>probably will not</i> load in Reddit apps (first-party or otherwise) but should work in any standard browser.<li>If a <strong>removed or deleted</strong> post shows up in the list, you may leave a comment on the post to accelerate its removal.<li>Expect frequent changes to this work-in-progress page.</ul></div>",
+        links.toString());
+  }
+
+  private static String oneLink(Iterator<String> ids, int linkId) {
+    if (ids == null || !ids.hasNext()) {
+      return null;
+    }
+    StringBuilder url = new StringBuilder("https://www.reddit.com/by_id/");
+    for (int i = 0; i < 20 && ids.hasNext(); i++) {
+      url.append("t3_").append(ids.next());
+    }
+    final String toString = url.toString();
+    return String.format("<li><a href=%s>link %d</a>", toString, linkId);
+  }
 
   @SwimLane("unreviewed")
   MapLane<String, Value> unreviewed = mapLane();

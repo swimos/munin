@@ -75,7 +75,8 @@ public final class Publication {
     return "Added taxa: " + taxa
         + ((reviewers == null) ? "" : ("\n\nReviewed by: " + reviewers))
         + "\n\n^(I catalog submissions to this subreddit.) "
-        + "[^(Learn how to use me)](https://gist.github.com/brohitbrose/be99a16ddc7a6a1bd9c1eef28d622564)^(.)";
+        + "[^(Recent uncatalogued submissions)](https://munin.swim.services/submissions?lane=api/unanswered)^( | )"
+        + "[^(Learn to use me)](https://gist.github.com/brohitbrose/be99a16ddc7a6a1bd9c1eef28d622564)";
   }
 
   public static Answer answerFromPublication(String pub) {
