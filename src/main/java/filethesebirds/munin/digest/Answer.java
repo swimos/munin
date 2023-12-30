@@ -16,7 +16,9 @@ package filethesebirds.munin.digest;
 
 import filethesebirds.munin.digest.motion.Review;
 import filethesebirds.munin.digest.motion.Suggestion;
+import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 
 /**
  * A possibly in-progress view of community-identified taxa within an
@@ -57,6 +59,32 @@ public interface Answer {
     } else {
       throw new IllegalArgumentException("Unexpected motion type: " + motion.getClass());
     }
+  }
+
+  default Answer apply(Iterable<Motion> motions) {
+    if (motions == null) {
+      return this;
+    }
+    Answer result = this;
+    for (Motion motion : motions) {
+      if (result.motionIsSignificant(motion)) {
+        result = result.apply(motion);
+      }
+    }
+    return result;
+  }
+
+  default Answer apply(SortedMap<?, Motion> motions) {
+    if (motions == null) {
+      return this;
+    }
+    Answer result = this;
+    for (Map.Entry<?, Motion> entry : motions.entrySet()) {
+      if (result.motionIsSignificant(entry.getValue())) {
+        result = result.apply(entry.getValue());
+      }
+    }
+    return result;
   }
 
   default boolean motionIsSignificant(Motion motion) {

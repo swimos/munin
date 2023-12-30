@@ -1,23 +1,14 @@
 munin: @fabric {
-  @plane(class: "filethesebirds.munin.swim.MuninPlane")
-  # Singletons
+  @plane(class: "swim.api.plane.AbstractPlane")
+  # Singleton Web Agent with multiple traits
   @node {
-    uri: "/commentsFetch"
+    uri: "/live"
+    @agent(class: "filethesebirds.munin.swim.PublishingAgent")
     @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")
-  }
-  @node {
-    uri: "/submissionsFetch"
+    @agent(class: "filethesebirds.munin.swim.SubmissionsAgent")
     @agent(class: "filethesebirds.munin.swim.SubmissionsFetchAgent")
   }
-  @node {
-    uri: "/throttledPublish"
-    @agent(class: "filethesebirds.munin.swim.ThrottledPublishingAgent")
-  }
-  @node {
-    uri: "/submissions"
-    @agent(class: "filethesebirds.munin.swim.SubmissionsAgent")
-  }
-  # Dynamics
+  # Dynamically instantiable Web Agent type with single trait
   @node {
     pattern: "/submission/:id"
     @agent(class: "filethesebirds.munin.swim.SubmissionAgent")

@@ -26,7 +26,10 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 final class VaultApi {
 
@@ -45,7 +48,7 @@ final class VaultApi {
     return new Timestamp(epoch * 1000);
   }
 
-  private static final String UPSERT_SUBMISSIONS_PREFIX = "INSERT into submissions VALUES";
+  private static final String UPSERT_SUBMISSIONS_PREFIX = "INSERT INTO submissions VALUES";
   private static final String UPSERT_SUBMISSIONS_SUFFIX = " ON CONFLICT (submission_id) DO UPDATE SET"
       + " location = EXCLUDED.location,"
       + " upload_date = EXCLUDED.upload_date,"
@@ -53,9 +56,9 @@ final class VaultApi {
       + " comment_count = EXCLUDED.comment_count,"
       + " title = EXCLUDED.title;";
 
-  static PreparedStatement upsertSubmissions(Connection conn, Submission[] submissions)
+  static PreparedStatement upsertSubmissions(Connection conn, Collection<Submission> submissions)
       throws SQLException {
-    if (submissions == null || submissions.length == 0) {
+    if (submissions == null || submissions.isEmpty()) {
       return null;
     }
     final String template = UPSERT_SUBMISSIONS_PREFIX
@@ -64,7 +67,7 @@ final class VaultApi {
     final PreparedStatement st = conn.prepareStatement(template);
     for (Submission submission : submissions) {
       st.setLong(1, Long.parseLong(submission.id(), 36));
-      st.setObject(2, submission.location().text(), Types.OTHER);
+      st.setObject(2, "unknown", Types.OTHER);
       st.setTimestamp(3, epochSecondsToTimestamp(submission.createdUtc()));
       st.setInt(4, submission.karma());
       st.setInt(5, submission.commentCount());
@@ -75,25 +78,20 @@ final class VaultApi {
     return st;
   }
 
-  static String upsertSubmissionsQuery(Submission[] submissions) {
-    if (submissions == null || submissions.length == 0) {
+  static String upsertSubmissionsQuery(Collection<Submission> submissions) {
+    if (submissions == null || submissions.isEmpty()) {
       return null;
     }
-    final String repeatFmt = " (%d, '%s', '%s', %d, %d, '%s', 'unanswered')";
-    final StringBuilder sb = new StringBuilder(512);
-    sb.append(UPSERT_SUBMISSIONS_PREFIX);
-    sb.append(formatRepeatUpsertSubmission(repeatFmt, submissions[0]));
-    for (int i = 1; i < submissions.length; i++) {
-      sb.append(formatRepeatUpsertSubmission("," + repeatFmt, submissions[i]));
-    }
-    sb.append(UPSERT_SUBMISSIONS_SUFFIX);
-    return sb.toString();
+    return UPSERT_SUBMISSIONS_PREFIX + " "
+        + submissions.stream().map(VaultApi::formatRepeatUpsertSubmission)
+            .collect(Collectors.joining(" "))
+        + UPSERT_SUBMISSIONS_SUFFIX;
   }
 
-  private static String formatRepeatUpsertSubmission(String fmt, Submission submission) {
-    return String.format(fmt,
+  private static String formatRepeatUpsertSubmission(Submission submission) {
+    return String.format("(%d, '%s', '%s', %d, %d, '%s', 'unanswered')",
         Long.parseLong(submission.id(), 36),
-        submission.location().text(),
+        "unknown",
         epochSecondsToString(submission.createdUtc()),
         submission.karma(),
         submission.commentCount(),
@@ -208,23 +206,36 @@ final class VaultApi {
         submissionId);
   }
 
-  static PreparedStatement deleteSubmission(Connection conn, String submissionId36)
-      throws SQLException {
-    final long submissionId;
-    try {
-      submissionId = Long.parseLong(submissionId36, 36);
-    } catch (Exception e) {
+  private static final String DELETE_SUBMISSIONS_PREFIX = "DELETE FROM submissions WHERE submission_id IN (";
+  private static final String DELETE_SUBMISSIONS_SUFFIX = ");";
+
+  static PreparedStatement deleteSubmissions(Connection conn, List<String> submissionIds) {
+    if (submissionIds == null || submissionIds.isEmpty()) {
       return null;
     }
+    return null; // FIXME
+  }
+
+  static String deleteSubmissionsQuery(Collection<String> submissionIds) {
+    if (submissionIds == null || submissionIds.isEmpty()) {
+      return null;
+    }
+    return DELETE_SUBMISSIONS_PREFIX
+        + String.join(",", submissionIds)
+        + DELETE_SUBMISSIONS_SUFFIX;
+  }
+
+  static PreparedStatement deleteSubmission(Connection conn, long submissionId10)
+      throws SQLException {
     final PreparedStatement st = conn.prepareStatement("DELETE FROM submissions WHERE submission_id = ?;");
-    st.setLong(1, submissionId);
+    st.setLong(1, submissionId10);
     return st;
   }
 
-  static String deleteSubmissionQuery(String submissionId36) {
+  static String deleteSubmissionQuery(long submissionId10) {
     try {
       return "DELETE FROM submissions WHERE submission_id = "
-          +  Long.parseLong(submissionId36, 36) + ';';
+          +  submissionId10 + ';';
     } catch (Exception e) {
       return null;
     }

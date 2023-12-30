@@ -16,29 +16,33 @@ package filethesebirds.munin.connect.vault;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Submission;
-import filethesebirds.munin.util.ConfigUtils;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Collection;
 
 public abstract class VaultClient {
 
   public static final VaultClient DRY = new Dry();
 
-  public abstract void upsertSubmissions(Submission[] submissions);
+  public abstract void upsertSubmissions(Collection<Submission> submissions);
 
   public abstract void assignObservations(String submissionId36, Answer answer);
 
-  public abstract void deleteSubmission(String submissionId36);
+  public abstract void deleteSubmission(long submissionId10);
+
+  public final void deleteSubmission(String submissionId36) {
+    deleteSubmission(Utils.id36To10(submissionId36));
+  }
+
+  public abstract void deleteSubmissions(Collection<String> submissionID36s);
 
   public static VaultClient fromStream(InputStream is) {
-    return new Pooled(
-        new HikariDataSource(
-            ConfigUtils.credentialsFromStream(is,
-                p -> new HikariDataSource(new HikariConfig(p)))));
+    return new Pooled(Utils.credentialsFromStream(is, p -> new HikariDataSource(new HikariConfig(p))));
   }
 
   private static class Pooled extends VaultClient {
@@ -54,8 +58,8 @@ public abstract class VaultClient {
     }
 
     @Override
-    public void upsertSubmissions(Submission[] submissions) {
-      if (submissions == null || submissions.length == 0) {
+    public void upsertSubmissions(Collection<Submission> submissions) {
+      if (submissions == null || submissions.isEmpty()) {
         return;
       }
       try (final Connection conn = getConnection()) {
@@ -99,38 +103,48 @@ public abstract class VaultClient {
     }
 
     @Override
-    public void deleteSubmission(String submissionId36) {
+    public void deleteSubmission(long submissionId10) {
       try (final Connection conn = getConnection()) {
         conn.setAutoCommit(false);
-        final PreparedStatement st = VaultApi.deleteSubmission(conn, submissionId36);
-        if (st != null) {
-          st.executeUpdate();
-        }
+        final PreparedStatement st = VaultApi.deleteSubmission(conn, submissionId10);
+        st.executeUpdate();
         conn.commit();
       } catch (SQLException e) {
         throw new RuntimeException("Failed to delete from vault submissions", e);
       }
     }
+
+    @Override
+    public void deleteSubmissions(Collection<String> submissionID36s) {
+      // FIXME
+    }
+
   }
 
   private static class Dry extends VaultClient {
 
     @Override
-    public void upsertSubmissions(Submission[] submissions) {
+    public void upsertSubmissions(Collection<Submission> submissions) {
       System.out.println("Dry query: " + VaultApi.upsertSubmissionsQuery(submissions));
     }
 
     @Override
     public void assignObservations(String submissionId36, Answer answer) {
       System.out.printf("Dry queries: "
+          + VaultApi.createPlaceholderSubmissionQuery(submissionId36) + "%n"
           + VaultApi.deleteObservationsQuery(submissionId36) + "%n"
           + (answer == null || answer.taxa().isEmpty() ? ""
               : VaultApi.insertObservationsQuery(submissionId36, answer) + "%n"));
     }
 
     @Override
-    public void deleteSubmission(String submissionId36) {
-      System.out.println("Dry query: " + VaultApi.deleteSubmissionQuery(submissionId36));
+    public void deleteSubmission(long submissionId10) {
+      System.out.println("Dry query: " + VaultApi.deleteSubmissionQuery(submissionId10));
+    }
+
+    @Override
+    public void deleteSubmissions(Collection<String> submissionID36s) {
+      // FIXME
     }
 
   }

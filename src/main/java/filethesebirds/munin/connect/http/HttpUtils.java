@@ -14,7 +14,6 @@
 
 package filethesebirds.munin.connect.http;
 
-import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -26,21 +25,27 @@ public class HttpUtils {
   }
 
   /**
-   * Sends an HTTP request, retrying a bounded number of times if network-level
-   * errors are encountered in the process.
+   * Synchronously sends an HTTP request, immediately retrying a bounded number
+   * of times in the event of failure. May block for up to duration {@code
+   * request.timeout() * attempts}, or indefinitely if {@code request.timeout()}
+   * is null.
    */
   public static <T> HttpResponse<T> fireRequest(HttpClient executor,
         HttpRequest request, BodyHandler<T> handler, int attempts) {
+    if (attempts <= 0) {
+      throw new IllegalArgumentException("attempts must be positive");
+    }
     int i;
     Throwable lastNetworkError = null;
     for (i = 0; i < attempts; i++) {
       try {
         return executor.send(request, handler);
-      } catch (InterruptedException | IOException e) {
+      } catch (Exception e) {
         lastNetworkError = e;
       }
     }
-    throw new HttpConnectException("Multiple network-level failures (trace has most recent)", lastNetworkError);
+    throw new HttpConnectException("Failed to complete " + request + " with timeout="
+        + request.timeout().orElse(null) + " within " + attempts + " attempts", lastNetworkError);
   }
 
 }

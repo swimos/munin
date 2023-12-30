@@ -34,27 +34,29 @@ public class SubmissionsAgent extends AbstractAgent {
   private JoinValueLane<String, Value> statuses = joinValueLane()
       .keyForm(Form.forString())
       .valueForm(Form.forValue())
-      .didUpdate((k, n, o) -> {
-        final String id = n.get("id").stringValue(null);
-        if (id == null) {
-          return;
-        }
-        final Value taxa = n.get("taxa");
-        final Value reviewers = n.get("reviewers");
-        if (taxa.isDistinct()) {
-          if (reviewers.isDistinct()) {
-            this.unreviewed.remove(id);
-            this.reviewed.put(id, n);
-          }
-          this.unanswered.remove(id);
-          this.answered.put(id, n);
-        } else {
-          this.reviewed.remove(id);
-          this.answered.remove(id);
-          this.unreviewed.put(id, n);
-          this.unanswered.put(id, n);
-        }
-      });
+      .didUpdate(this::statusesDidUpdate);
+
+  protected void statusesDidUpdate(String k, Value n, Value o) {
+    final String id = n.get("id").stringValue(null);
+    if (id == null) {
+      return;
+    }
+    final Value taxa = n.get("taxa");
+    final Value reviewers = n.get("reviewers");
+    if (taxa.isDistinct()) {
+      if (reviewers.isDistinct()) {
+        this.unreviewed.remove(id);
+        this.reviewed.put(id, n);
+      }
+      this.unanswered.remove(id);
+      this.answered.put(id, n);
+    } else {
+      this.reviewed.remove(id);
+      this.answered.remove(id);
+      this.unreviewed.put(id, n);
+      this.unanswered.put(id, n);
+    }
+  }
 
   @SwimLane("subscribe")
   private CommandLane<String> subscribe = this.<String>commandLane()
@@ -120,7 +122,7 @@ public class SubmissionsAgent extends AbstractAgent {
 
   @Override
   public void didStart() {
-    System.out.println(nodeUri() + ": didStart");
+    info(nodeUri() + ": didStart");
   }
 
 }

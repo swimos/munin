@@ -17,8 +17,10 @@ package filethesebirds.munin.connect.reddit.response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
-import swim.adapter.http.HttpIngest;
+import java.util.zip.GZIPInputStream;
+import swim.codec.Utf8;
 import swim.http.MediaType;
+import swim.json.Json;
 import swim.structure.Value;
 
 public class StructuredRedditResponse extends AbstractRedditResponse<Value> {
@@ -40,8 +42,15 @@ public class StructuredRedditResponse extends AbstractRedditResponse<Value> {
     final MediaType mediaType = hr.headers().firstValue("content-type")
         .map(MediaType::parse)
         .orElse(MediaType.applicationJson());
-    return HttpIngest.responseBodyStructure(HttpIngest.responseBodyStream(hr, encoding),
-        mediaType);
+    return responseBodyStructure(encoding, mediaType, hr);
+  }
+
+  private static Value responseBodyStructure(String encoding, MediaType mediaType,
+                                             HttpResponse<InputStream> hr)
+      throws IOException {
+    final InputStream is = "gzip".equals(encoding) ? new GZIPInputStream(hr.body())
+        : hr.body();
+    return Utf8.read(is, Json.structureParser().documentParser());
   }
 
 }

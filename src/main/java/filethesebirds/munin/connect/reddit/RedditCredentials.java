@@ -14,7 +14,7 @@
 
 package filethesebirds.munin.connect.reddit;
 
-import filethesebirds.munin.util.ConfigUtils;
+import filethesebirds.munin.Utils;
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -44,7 +44,7 @@ public class RedditCredentials {
   }
 
   public static RedditCredentials fromStream(InputStream stream) {
-    return ConfigUtils.credentialsFromStream(stream, RedditCredentials::fromProperties);
+    return Utils.credentialsFromStream(stream, RedditCredentials::fromProperties);
   }
 
   public String clientId() {

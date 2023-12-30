@@ -53,11 +53,11 @@ class ExtractingVisitor extends AbstractVisitor {
     final StringBuilder sb = new StringBuilder(s.length() + 8);
     for (int i = 0; i < s.length(); i++) {
       final char c = s.charAt(i);
-      if (('a' <= c && c <= 'z') || ('-' == c) || ('/' == c) || ('(' == c) || (')' == c) || ('.' == c)) {
+      if (('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || ('/' == c) || ('(' == c) || (')' == c) || ('.' == c)) {
         sb.append(c);
       } else if ('A' <= c && c <= 'Z') {
         sb.append((char) (c + ('a' - 'A')));
-      } else if (Character.isWhitespace(c)
+      } else if ((c == '-' || Character.isWhitespace(c))
           && i > 0 && !Character.isWhitespace(s.charAt(i - 1))) {
         sb.append("%20");
       }

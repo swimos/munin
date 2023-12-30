@@ -116,7 +116,7 @@ public class Comment {
                                     Function<Value, V> extractor) {
     try {
       return extractor.apply(data.get(key));
-    } catch (Throwable e) {
+    } catch (Exception e) {
       throw new RuntimeException("Failed to extract " + key + ". Essence dump: "
           + essence, e);
     }
