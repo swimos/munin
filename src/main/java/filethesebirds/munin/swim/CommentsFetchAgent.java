@@ -23,6 +23,9 @@ import swim.concurrent.TimerRef;
 /**
  * A Web Agent that fetches new comments to r/WhatsThisBird and routes them for
  * processing by appropriate {@link SubmissionAgent SubmissionAgents}.
+ *
+ * <p>This agent does not directly modify vault or a {@code LiveSubmissions}
+ * instance.
  */
 public class CommentsFetchAgent extends AbstractAgent {
 
@@ -33,13 +36,13 @@ public class CommentsFetchAgent extends AbstractAgent {
     return this.fetchTimer;
   }
 
-  @SwimLane("preemptSubmissionsFetch")
-  protected CommandLane<Comment> preemptSubmissionsFetch = commandLane()
+  @SwimLane("preemptCommentsFetch")
+  protected CommandLane<Comment> preemptCommentsFetch = commandLane()
       .valueForm(Comment.form())
-      .onCommand(this::preemptSubmissionsFetchOnCommand);
+      .onCommand(this::preemptCommentsFetchOnCommand);
 
-  protected void preemptSubmissionsFetchOnCommand(Comment comment) {
-    CommentsFetchAgentLogic.preemptSubmissionsFetchOnCommand(this, comment);
+  protected void preemptCommentsFetchOnCommand(Comment comment) {
+    CommentsFetchAgentLogic.preemptCommentsFetchOnCommand(this, comment);
   }
 
   @Override

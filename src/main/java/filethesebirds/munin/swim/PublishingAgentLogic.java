@@ -45,11 +45,11 @@ final class PublishingAgentLogic {
   }
 
   static void subscribeOnCommand(PublishingAgent runtime, String uri) {
-    Logic.trace(runtime, "subscribe", "Begin onCommand()");
+    Logic.trace(runtime, "subscribe", "Begin onCommand(" + uri + ")");
     if (uri == null || !uri.startsWith("/submission/")) { // FIXME: make constant, more validation
       Logic.warn(runtime, "subscribe", "Odd nodeUri=" + uri + " provided to subscribe, will not downlink");
     } else {
-      Logic.info(runtime, "subscribe", "Will open downlink to " + uri + "#answer");
+      Logic.info(runtime, "subscribe", "Will downlink to " + uri + "#answer");
       runtime.answers.downlink(uri)
           .nodeUri(uri)
           .laneUri("answer")

@@ -21,8 +21,23 @@ import swim.concurrent.TimerRef;
 import swim.structure.Value;
 
 /**
- * A Web Agent that periodically fetches new submissions to r/WhatsThisBird,
- * but may be preempted to execute outside its usual schedule.
+ * A singleton Web Agent that fetches new submissions to r/WhatsThisBird and
+ * routes the resulting information for processing by appropriate {@link
+ * SubmissionAgent SubmissionAgents}.
+ *
+ * <p>The {@code SubmissionsFetchAgent} is liable for the following {@link
+ * LiveSubmissions} actions:
+ * <ul>
+ * <li>Inserting up-to-date information about all active submissions
+ * <li>Shelving submitter-deleted and moderator-removed submissions that have
+ * received no comments since their disappearance
+ * </ul>
+ * and the following vault actions:
+ * <ul>
+ * <li>Upserting the latest info about all active live submissions
+ * <li>Deleting each submission (cascaded to its observations) that moves to the
+ * {@code shelved} status from {@code active}
+ * </ul>
  */
 public class SubmissionsFetchAgent extends AbstractAgent {
 
@@ -32,12 +47,12 @@ public class SubmissionsFetchAgent extends AbstractAgent {
     return this.fetchTimer;
   }
 
-  @SwimLane("preemptFetch")
-  protected CommandLane<Value> preemptFetch = this.<Value>commandLane()
-      .onCommand(this::preemptFetchOnCommand);
+  @SwimLane("preemptSubmissionsFetch")
+  protected CommandLane<Value> preemptSubmissionsFetch = this.<Value>commandLane()
+      .onCommand(this::preemptSubmissionsFetchOnCommand);
 
-  protected void preemptFetchOnCommand(Value v) {
-    SubmissionsFetchAgentLogic.preemptFetchOnCommand(this, v);
+  protected void preemptSubmissionsFetchOnCommand(Value v) {
+    SubmissionsFetchAgentLogic.preemptSubmissionsFetchOnCommand(this, v);
   }
 
   @Override

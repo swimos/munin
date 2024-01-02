@@ -17,12 +17,12 @@ package filethesebirds.munin.swim;
 import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Submission;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.stream.Collectors;
+import java.util.Set;
 import swim.api.agent.AbstractAgent;
-import swim.api.plane.PlaneContext;
-import swim.api.ref.WarpRef;
 
 final class LiveSubmissions {
 
@@ -31,6 +31,9 @@ final class LiveSubmissions {
 
   LiveSubmissions(NavigableMap<Long, Submission> active,
                   NavigableMap<Long, Long> shelved) {
+    final long then = (System.currentTimeMillis() - MuninConstants.lookbackMillis()) / 1000L;
+    active.entrySet().removeIf(e -> e.getValue().createdUtc() <= then);
+    shelved.entrySet().removeIf(e -> e.getValue() <= then);
     this.active = active;
     this.shelved = shelved;
   }
@@ -85,16 +88,28 @@ final class LiveSubmissions {
     return isShelved(Utils.id36To10(id36));
   }
 
-  void expire(AbstractAgent runtime, String caller, long id10) {
-    final NavigableMap<Long, Submission> willExpire = this.active.headMap(id10, true);
-    Logic.info(runtime, caller, "Will expire submissions with IDs " + willExpire.keySet().stream()
-        .map(Utils::id10To36)
-        .collect(Collectors.joining(",")));
-    willExpire.forEach((id, submission) -> {
-      runtime.command("/live", "expireSubmission", );
-    });
-    willExpire.clear();
-    this.shelved.headMap(id10, true).clear();
+  Set<String> expire(SubmissionsAgent runtime) {
+    final long then = (System.currentTimeMillis() - MuninConstants.lookbackMillis()) / 1000L;
+    final Set<String> result = new HashSet<>();
+    for (Iterator<Map.Entry<Long, Submission>> itr = this.active.entrySet().iterator();
+         itr.hasNext(); ) {
+      final Map.Entry<Long, Submission> entry = itr.next();
+      if (entry.getValue().createdUtc() <= then) {
+        final String id36 = entry.getValue().id();
+        itr.remove();
+        Logic.info(runtime, "[expiryTimer]", "Expired active submission " + id36 + ", will notify SubmissionAgent");
+        result.add(id36);
+      }
+    }
+    for (Iterator<Map.Entry<Long, Long>> itr = this.shelved.entrySet().iterator();
+         itr.hasNext(); ) {
+      final Map.Entry<Long, Long> entry = itr.next();
+      if (entry.getValue() <= then) {
+        itr.remove();
+        Logic.info(runtime, "[expiryTimer]", "Expired shelved submission " + Utils.id10To36(entry.getKey()));
+      }
+    }
+    return result;
   }
 
   boolean shelve(AbstractAgent runtime, String caller, long id10) {
@@ -110,7 +125,6 @@ final class LiveSubmissions {
     if (oldValue != null) {
       this.shelved.put(id10, oldValue.createdUtc());
       Logic.debug(runtime, caller, "Shelved previously active liveSubmission " + id36);
-      runtime.command("/live", "shelveSubmission", );
       return true;
     } else {
       Logic.warn(runtime, caller, "Attempted to shelve nonexistent or already-shelved submission with ID " + id36);
@@ -119,21 +133,9 @@ final class LiveSubmissions {
   }
 
   void putActive(AbstractAgent runtime, String caller, long id10, Submission submission) {
-    putActive(runtime, id10, submission,
-        () -> Logic.debug(runtime, caller, "Created new active submission " + submission));
-  }
-
-  void putActive(PlaneContext runtime, long id10, Submission submission) {
-    putActive(runtime, id10, submission, () -> { });
-  }
-
-  private void putActive(WarpRef runtime, long id10, Submission submission,
-                         Runnable onAddLog) {
     if (this.active.put(id10, submission) != null) {
-      onAddLog.run();
+      Logic.debug(runtime, caller, "Created new active submission " + submission);
     }
-    runtime.command("/submission/" + submission.id(), "info",
-        Submission.form().mold(submission).toValue());
   }
 
 }

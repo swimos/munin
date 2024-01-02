@@ -24,14 +24,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import swim.structure.Text;
 
 final class CommentsFetchAgentLogic {
+
+  private static final Text PREEMPT_SUBMISSIONS_FETCH_PAYLOAD = Text.from("preempt");
 
   private CommentsFetchAgentLogic() {
   }
 
-  static void preemptSubmissionsFetchOnCommand(CommentsFetchAgent runtime, Comment comment) {
-    final String caller = "startFetching";
+  static void preemptCommentsFetchOnCommand(CommentsFetchAgent runtime, Comment comment) {
+    final String caller = "preemptCommentsFetch";
     Logic.trace(runtime, caller, "Begin onCommand(" + comment + ")");
     Logic.cancelTimer(runtime.fetchTimer);
     try {
@@ -45,17 +48,17 @@ final class CommentsFetchAgentLogic {
       Logic.scheduleRecurringBlocker(runtime, caller, runtime::fetchTimer,
           1000L, 60000L, () -> new GatherAgentTask(runtime).run());
     } else {
-      Logic.error(runtime, caller, "Timer could not fire due to invalid initial conditions");
+      Logic.error(runtime, caller, "Timer did not fire due to invalid initial conditions");
     }
     Logic.trace(runtime, caller, "End onCommand()");
   }
 
-  static long coalesceComments(long until, long boundaryId10, Map<String, Submission> active,
-                               Map<String, List<Comment>> batches, Map<String, Integer> counts,
-                               Map<String, Long> shelved) {
+  static Comment coalesceComments(long until, long boundaryId10, Map<String, Submission> active,
+                                  Map<String, List<Comment>> batches, Map<String, Integer> counts,
+                                  Map<String, Long> shelved) {
     final GatherCoalesceTask task = new GatherCoalesceTask(until, boundaryId10, active, batches, counts, shelved);
     task.run();
-    return task.oldestCommentTimestamp;
+    return task.bookmark;
   }
 
   static boolean submissionAuthorIsDeleted(Comment comment) {
@@ -116,7 +119,7 @@ final class CommentsFetchAgentLogic {
     private int processComment(Comment c, int state) {
       final long id10 = Utils.id36To10(c.id());
       if (id10 <= oldBookmarkId10) {
-        return 1;
+        return 1; // Tells caller we're done
       }
       final long subId10 = Utils.id36To10(c.submissionId());
       if (Shared.liveSubmissions().isShelved(subId10)) {
@@ -125,18 +128,20 @@ final class CommentsFetchAgentLogic {
         Logic.debug(this.runtime, "[GatherTask]", "Found comment to active submission " + c.submissionId());
         this.runtime.command(submissionNodeUri(c), "addNewComment", Comment.form().mold(c).toValue());
       } else if (helper(Shared.liveSubmissions().getLatest(), subId10, c.submissionId())) {
-        Logic.info(this.runtime, "[GatherTask]", "Found comment to new submission " + c.submissionId()
+        Logic.info(this.runtime, "[GatherTask]", "Found comment to brand-new submission " + c.submissionId()
             + ((state == 2) ? "" : ", will preempt SubmissionsFetch"));
         if (state != 2) {
-          this.runtime.command(submissionNodeUri(c), "preemptSubmissionsFetch", );
+          this.runtime.command("/live", "preemptSubmissionsFetch", PREEMPT_SUBMISSIONS_FETCH_PAYLOAD);
         }
-        return 2;
+        this.runtime.command(submissionNodeUri(c), "addNewComment", Comment.form().mold(c).toValue());
+        return 2; // Tells caller we're not done, but have preempted SubmissionsFetch this iteration
       } else if (helper(Shared.liveSubmissions().getEarliest(), subId10, c.submissionId())) {
         Logic.info(this.runtime, "[GatherTask]", "Found comment to possibly-active submission " + c.submissionId()
             + ((state == 2) ? "" : ", will preempt SubmissionsFetch"));
         if (state != 2) {
-          this.runtime.command(submissionNodeUri(c), "preemptSubmissionsFetch", );
+          this.runtime.command("/live", "preemptSubmissionsFetch", PREEMPT_SUBMISSIONS_FETCH_PAYLOAD);
         }
+        this.runtime.command(submissionNodeUri(c), "addNewComment", Comment.form().mold(c).toValue());
         return 2;
       } else {
         Logic.debug(this.runtime, "[GatherTask]", "Ignoring comment to expired submission " + c.submissionId());
@@ -150,7 +155,7 @@ final class CommentsFetchAgentLogic {
 
     private boolean helper(long lower10, long subId10, String subId36) {
       if (lower10 < 0) {
-        Logic.warn(this.runtime, "[GatherTask]", "Saw zero active/shelved submissions during comment analysis, "
+        Logic.warn(this.runtime, "[GatherTask]", "Empty LiveSubmissions during comment analysis, "
             + "will assume submission " + subId36 + " is expired");
         return false;
       }
@@ -167,7 +172,7 @@ final class CommentsFetchAgentLogic {
     private final Map<String, List<Comment>> batches;
     private final Map<String, Integer> counts;
     private final Map<String, Long> shelved;
-    private long oldestCommentTimestamp;
+    private Comment bookmark;
 
     private GatherCoalesceTask(long until, long boundaryId10, Map<String, Submission> active,
                                Map<String, List<Comment>> batches, Map<String, Integer> counts,
@@ -178,7 +183,7 @@ final class CommentsFetchAgentLogic {
       this.batches = batches;
       this.counts = counts;
       this.shelved = shelved;
-      this.oldestCommentTimestamp = Long.MAX_VALUE;
+      this.bookmark = null;
     }
 
     void run() {
@@ -211,7 +216,7 @@ final class CommentsFetchAgentLogic {
         return true;
       }
       updateMaps(c);
-      this.oldestCommentTimestamp = Math.min(c.createdUtc(), this.oldestCommentTimestamp);
+      this.bookmark = c;
       return false;
     }
 

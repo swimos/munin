@@ -15,6 +15,7 @@
 package filethesebirds.munin.swim;
 
 import filethesebirds.munin.Utils;
+import filethesebirds.munin.connect.ebird.EBirdApiException;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Motion;
@@ -24,7 +25,6 @@ import filethesebirds.munin.digest.motion.EBirdExtractPurify;
 import filethesebirds.munin.digest.motion.Extract;
 import filethesebirds.munin.digest.motion.ExtractParse;
 import filethesebirds.munin.digest.motion.Review;
-import java.util.function.Consumer;
 import swim.concurrent.AbstractTask;
 import swim.concurrent.TaskRef;
 import swim.structure.Record;
@@ -45,25 +45,24 @@ final class SubmissionAgentLogic {
 
   static void expireOnCommand(SubmissionAgent runtime, Value v) {
     final String caller = "expire";
-    removeOnCommand(runtime, caller, v, () -> {
-      final long id10 = Utils.id36To10(runtime.getProp("id").stringValue());
-      Shared.liveSubmissions().expire(runtime, caller, id10);
+    removeSubmission(runtime, caller, v, () -> {
       // TODO: upsert submission/observations here just in case?
     });
   }
 
   static void shelveOnCommand(SubmissionAgent runtime, Value v) {
     final String caller = "shelve";
-    removeOnCommand(runtime, caller, v, () -> {
+    removeSubmission(runtime, caller, v, () -> {
       final long id10 = Utils.id36To10(runtime.getProp("id").stringValue());
-      Shared.liveSubmissions().shelve(runtime, caller, id10);
-      Logic.executeOrLogVaultAction(runtime, caller, "asdf", "asdf",
+      Logic.executeOrLogVaultAction(runtime, caller,
+          "Will delete",
+          "asdf",
           client -> client.deleteSubmission(id10));
     });
   }
 
-  private static void removeOnCommand(SubmissionAgent runtime, String caller, Value v,
-                                      Runnable purge) {
+  private static void removeSubmission(SubmissionAgent runtime, String caller, Value v,
+                                       Runnable purge) {
     Logic.trace(runtime, caller, "Begin onCommand(" + v + ")");
     if (v.isDistinct()) {
       try {
@@ -118,6 +117,17 @@ final class SubmissionAgentLogic {
           Comment.form().mold(comment).toValue());
       return;
     }
+    if (CommentsFetchAgentLogic.commentIsRemover(comment)
+        || CommentsFetchAgentLogic.submissionAuthorIsDeleted(comment)) {
+      Logic.info(runtime, lane, "Will shelve submission");
+      if (Shared.liveSubmissions().shelve(runtime, lane, comment.submissionId())) {
+        Logic.executeOrLogVaultAction(runtime, lane,
+            "",
+            "",
+            client -> client.deleteSubmission(comment.submissionId()));
+      }
+      return;
+    }
     final Extract extract = ExtractParse.parseComment(comment); // CPU-intensive, not I/O-bound
     if (extract.isEmpty()) {
       Logic.debug(runtime, lane, "Did not analyze unremarkable comment from " + comment.author());
@@ -156,34 +166,34 @@ final class SubmissionAgentLogic {
 
         @Override
         public void runTask() {
-//          while (!isComplete()) {
-//            try {
-//              setSoFar(EBirdExtractPurify.purifyOneHint(Shared.eBirdClient(), getSoFar()));
-//              PhasedPurifyTask.this.hintsSoFar++;
-//            } catch (EBirdApiException e) {
-//              if (++failures <= MAX_FAILURES) {
-//                Logic.warn(runtime, "[PhasedPurifyTask]",
-//                    "Exception in processing hint for comment " + comment + ", retrying in ~1 min");
-//                runtime.setTimer(60000L + (long) (Math.random() * 30000) - 15000L,
-//                    PhasedPurifyTask.this.task::cue);
-//              } else {
-//                Logic.error(runtime, "[PhasedPurifyTask]",
-//                    "Exception in processing hint for comment " + comment + ", aborting");
-//              }
-//              return;
-//            }
-//          }
-//          // On success
-//          final Motion purified = getSoFar().base();
-//          if ((purified instanceof Review) || !purified.isEmpty()) {
-//            Logic.info(runtime, "[PhasedPurifyTask]", "Purified extract into " + purified
-//                + ", will update motions accordingly");
-//            final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
-//            runtime.motions.put(laneKey, purified);
-//          } else {
-//            Logic.warn(runtime, "[PhasedPurifyTask]", "Purification of comment "
-//                + comment + " unexpectedly yielded empty motion");
-//          }
+          while (!isComplete()) {
+            try {
+              setSoFar(EBirdExtractPurify.purifyOneHint(Shared.eBirdClient(), getSoFar()));
+              PhasedPurifyTask.this.hintsSoFar++;
+            } catch (EBirdApiException e) {
+              if (++failures <= MAX_FAILURES) {
+                Logic.warn(runtime, "[PhasedPurifyTask]",
+                    "Exception in processing hint for comment " + comment + ", retrying in ~1 min");
+                runtime.setTimer(60000L + (long) (Math.random() * 30000) - 15000L,
+                    PhasedPurifyTask.this.task::cue);
+              } else {
+                Logic.error(runtime, "[PhasedPurifyTask]",
+                    "Exception in processing hint for comment " + comment + ", aborting");
+              }
+              return;
+            }
+          }
+          // On success
+          final Motion purified = getSoFar().base();
+          if ((purified instanceof Review) || !purified.isEmpty()) {
+            Logic.info(runtime, "[PhasedPurifyTask]", "Purified extract into " + purified
+                + ", will update motions accordingly");
+            final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
+            runtime.motions.put(laneKey, purified);
+          } else {
+            Logic.warn(runtime, "[PhasedPurifyTask]", "Purification of comment "
+                + comment + " unexpectedly yielded empty motion");
+          }
         }
 
         @Override

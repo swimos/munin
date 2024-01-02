@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import swim.structure.Text;
 import swim.structure.Value;
 
 /**
@@ -36,11 +37,12 @@ final class SubmissionsFetchAgentLogic {
 
   private static final String CALLER_LANE = "preemptFetch";
   private static final String CALLER_TASK = "[GatherTask]";
+  private static final Value SHELVE_PAYLOAD = Text.from("shelve");
 
   private SubmissionsFetchAgentLogic() {
   }
 
-  static void preemptFetchOnCommand(SubmissionsFetchAgent runtime, Value v) {
+  static void preemptSubmissionsFetchOnCommand(SubmissionsFetchAgent runtime, Value v) {
     Logic.trace(runtime, CALLER_LANE, "Begin onCommand(" + v + ")");
     runtime.fetchTimer = Logic.scheduleRecurringBlocker(runtime, "preemptFetch",
         runtime::fetchTimer, 3000L, 180000L, () -> fetchTimerAction(runtime));
@@ -49,7 +51,7 @@ final class SubmissionsFetchAgentLogic {
 
   private static void fetchTimerAction(SubmissionsFetchAgent runtime) {
     final long until = System.currentTimeMillis() - MuninConstants.lookbackMillis();
-    final Map<String, Submission> liveCandidates = new HashMap<>(500);
+    final Map<String, Submission> liveCandidates = new HashMap<>(256);
     final Map<Long, Submission> shelfCandidates = Shared.liveSubmissions().activeSnapshot();
 
     // Gather (fetch active submissions into liveSubmissions and identify shelf candidates, but do not update vault)
@@ -90,7 +92,11 @@ final class SubmissionsFetchAgentLogic {
             }
           }
           if (i > 0) {
-            Logic.info(runtime, CALLER_TASK, i + " of " + essence.length + " candidates were shelved");
+            Logic.info(runtime, CALLER_TASK, i + " of " + essence.length + " candidates were shelved, "
+                + "notifying SubmissionAgents and vault");
+            didShelve.forEach(s -> {
+              runtime.command("/submission/" + s, "shelveSubmission", SHELVE_PAYLOAD);
+            });
             Logic.doOrLogVaultAction(runtime, CALLER_TASK,
                 "Will remove submissions with IDs " + didShelve + " from vault",
                 "Failed to remove submissions from vault",
@@ -215,6 +221,8 @@ final class SubmissionsFetchAgentLogic {
       if (!Shared.liveSubmissions().isShelved(id10)) {
         Shared.liveSubmissions().putActive(this.runtime, CALLER_TASK, id10, s);
         this.active.put(s.id(), s);
+        this.runtime.command("/submission/" + s.id(), "info",
+            Submission.form().mold(s).toValue());
       }
     }
 

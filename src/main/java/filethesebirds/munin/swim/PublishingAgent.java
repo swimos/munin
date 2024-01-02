@@ -35,6 +35,8 @@ import swim.structure.Value;
  * A Web Agent that slowly (to satisfy rate limits) comments an in-progress for
  * each live r/WhatsThisBird submission and edits the comment as the answer
  * evolves, deleting the comment only if the submission is explicitly shelved.
+ *
+ * <p>
  */
 public class PublishingAgent extends AbstractAgent {
 
@@ -120,8 +122,8 @@ public class PublishingAgent extends AbstractAgent {
             c -> c.assignObservations(submissionId36, answer));
       });
 
-  @SwimLane("removeSubmission")
-  protected final CommandLane<String> removeSubmission = this.<String>commandLane()
+  @SwimLane("shelveSubmission")
+  protected final CommandLane<String> shelveSubmission = this.<String>commandLane()
       .onCommand(uri -> {
         this.publishQueue.remove(uri);
         this.publishedAnswers.remove(uri);
@@ -187,6 +189,10 @@ public class PublishingAgent extends AbstractAgent {
   }
 
   private void publishOne() {
+    if (!this.deleteQueue.isEmpty()) {
+
+
+    }
     if (this.publishQueue.isEmpty()) {
       cancelTimer();
       return;

@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Forms;
@@ -27,13 +28,26 @@ import swim.api.lane.MapLane;
 import swim.api.lane.ValueLane;
 import swim.concurrent.AbstractTask;
 import swim.structure.Form;
+import swim.structure.Num;
 import swim.structure.Record;
-import swim.structure.Text;
 import swim.structure.Value;
 
 /**
- * A Web Agent that serves as an intelligent digital twin of a submission to
- * r/WhatsThisBird.
+ * A dynamically instantiable Web Agent that serves as the intelligent, informed
+ * digital twin of an r/WhatsThisBird submission.
+ *
+ * <p>Each {@code SubmissionAgent} is liable for the following {@link
+ * LiveSubmissions} action:
+ * <ul>
+ * <li>Shelving the submission upon encountering a properly issued {@code !rm}
+ * comment or a comment whose submission author is {@code [deleted]}
+ * </ul>
+ * and the following vault actions:
+ * <ul>
+ * <li>Assigning observations based on updates to {@link #answer}
+ * <li>Deleting the corresponded submission (cascaded to its observations) upon
+ * encountering an aforementioned shelve-capable comment
+ * </ul>
  */
 public class SubmissionAgent extends AbstractAgent {
 
@@ -57,10 +71,19 @@ public class SubmissionAgent extends AbstractAgent {
       .valueForm(Forms.forMotion())
       .didUpdate(this::motionsDidUpdate);
 
+  /**
+   * A command-type endpoint that triggers closing this {@code SubmissionAgent}
+   * and clearing its lanes.
+   */
   @SwimLane("expire")
   CommandLane<Value> expire = this.<Value>commandLane()
       .onCommand(this::expireOnCommand);
 
+  /**
+   * A command-type endpoint that triggers closing this {@code SubmissionAgent},
+   * clearing its lanes, and removing all traces of its underlying submission
+   * from vault.
+   */
   @SwimLane("shelve")
   CommandLane<Value> shelve = this.<Value>commandLane()
       .onCommand(this::shelveOnCommand);
@@ -84,6 +107,9 @@ public class SubmissionAgent extends AbstractAgent {
   // Callback logic
 
   protected void infoDidSet(Submission n, Submission o) {
+    if (n == null) {
+      return;
+    }
     final Answer ans = this.answer.get();
     this.status.set(merge(n, ans));
     if ((o == null || o.id() == null || o.id().isEmpty())
@@ -134,18 +160,6 @@ public class SubmissionAgent extends AbstractAgent {
     SubmissionAgentLogic.motionsDidUpdate(this);
   }
 
-  private void initiateJoins() {
-    command("/live", "subscribe", Text.from(nodeUri().toString()));
-  }
-
-  private void removeJoins() {
-    command("/live", "expireSubmission", Text.from(nodeUri().toString()));
-  }
-
-  private void expireJoins() {
-    command("/live", "removeSubmission", Text.from(nodeUri().toString()));
-  }
-
   private static Value merge(Submission s, Answer a) {
     if (s == null || s.id() == null || s.id().isEmpty()) {
       return Value.extant();
@@ -171,7 +185,18 @@ public class SubmissionAgent extends AbstractAgent {
   @Override
   public void didStart() {
     Logic.info(this, "didStart()", "");
-    initiateJoins();
+    try {
+      final Num id10 =  Num.from(Utils.id36To10(getProp("id").stringValue(null)));
+      command("/live", "subscribe", id10);
+    } catch (Exception e) {
+      didFail(e);
+      close();
+    }
+  }
+
+  @Override
+  public void willClose() {
+    Logic.info(this, "willClose()", "");
   }
 
 }

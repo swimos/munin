@@ -1,13 +1,16 @@
 munin: @fabric {
+  # Default plane is sufficient, but ensure to configure policy in code
   @plane(class: "swim.api.plane.AbstractPlane")
+
   # Singleton Web Agent with multiple traits
   @node {
     uri: "/live"
-    @agent(class: "filethesebirds.munin.swim.PublishingAgent")
-    @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")
     @agent(class: "filethesebirds.munin.swim.SubmissionsAgent")
     @agent(class: "filethesebirds.munin.swim.SubmissionsFetchAgent")
+    @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")
+    @agent(class: "filethesebirds.munin.swim.PublishingAgent")
   }
+
   # Dynamically instantiable Web Agent type with single trait
   @node {
     pattern: "/submission/:id"

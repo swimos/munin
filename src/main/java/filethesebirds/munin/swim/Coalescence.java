@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 import swim.api.ref.WarpRef;
 import swim.structure.Form;
+import swim.structure.Text;
 
 public final class Coalescence {
 
@@ -35,6 +36,7 @@ public final class Coalescence {
   private final Map<String, List<Comment>> batches;
   private final Map<String, Integer> counts;
   private final Map<String, Long> shelved;
+  private Comment bookmark = null;
   private final WarpRef swim;
 
   private Coalescence(WarpRef swim) {
@@ -53,7 +55,7 @@ public final class Coalescence {
     return boundary;
   }
 
-  private long getComments(long boundaryId10) {
+  private Comment getComments(long boundaryId10) {
     return CommentsFetchAgentLogic.coalesceComments(this.until, boundaryId10, this.active,
         this.batches, this.counts, this.shelved);
   }
@@ -94,14 +96,15 @@ public final class Coalescence {
   }
 
   public void startFetchTasks() {
-
+    swim.command("/live", "preemptSubmissionsFetch", Text.from("preempt"));
+    swim.command("/live", "preemptCommentsFetch", Comment.form().mold(this.bookmark).toValue());
   }
 
   public static Coalescence coalesce(WarpRef swim) {
     final Coalescence coalesce = new Coalescence(swim);
     final long boundary = coalesce.getSubmissions();
-    final long oldestCommentTimestamp = coalesce.getComments(boundary);
-    coalesce.logIncompleteSubmissions(oldestCommentTimestamp);
+    coalesce.bookmark = coalesce.getComments(boundary);
+    coalesce.logIncompleteSubmissions(coalesce.bookmark.createdUtc());
     return coalesce;
   }
 
