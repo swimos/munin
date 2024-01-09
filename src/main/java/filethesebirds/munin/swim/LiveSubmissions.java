@@ -31,7 +31,7 @@ final class LiveSubmissions {
 
   LiveSubmissions(NavigableMap<Long, Submission> active,
                   NavigableMap<Long, Long> shelved) {
-    final long then = (System.currentTimeMillis() - MuninConstants.lookbackMillis()) / 1000L;
+    final long then = System.currentTimeMillis() / 1000L - MuninConstants.lookbackSeconds();
     active.entrySet().removeIf(e -> e.getValue().createdUtc() <= then);
     shelved.entrySet().removeIf(e -> e.getValue() <= then);
     this.active = active;
@@ -89,7 +89,7 @@ final class LiveSubmissions {
   }
 
   Set<String> expire(SubmissionsAgent runtime) {
-    final long then = (System.currentTimeMillis() - MuninConstants.lookbackMillis()) / 1000L;
+    final long then = System.currentTimeMillis() / 1000L - MuninConstants.lookbackSeconds();
     final Set<String> result = new HashSet<>();
     for (Iterator<Map.Entry<Long, Submission>> itr = this.active.entrySet().iterator();
          itr.hasNext(); ) {

@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.connect.vault;
 
+import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.digest.Taxonomy;
@@ -28,7 +29,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.stream.Collectors;
 
 final class VaultApi {
@@ -66,7 +66,7 @@ final class VaultApi {
         + UPSERT_SUBMISSIONS_SUFFIX;
     final PreparedStatement st = conn.prepareStatement(template);
     for (Submission submission : submissions) {
-      st.setLong(1, Long.parseLong(submission.id(), 36));
+      st.setLong(1, Utils.id36To10(submission.id()));
       st.setObject(2, "unknown", Types.OTHER);
       st.setTimestamp(3, epochSecondsToTimestamp(submission.createdUtc()));
       st.setInt(4, submission.karma());
@@ -90,7 +90,7 @@ final class VaultApi {
 
   private static String formatRepeatUpsertSubmission(Submission submission) {
     return String.format("(%d, '%s', '%s', %d, %d, '%s', 'unanswered')",
-        Long.parseLong(submission.id(), 36),
+        Utils.id36To10(submission.id()),
         "unknown",
         epochSecondsToString(submission.createdUtc()),
         submission.karma(),
@@ -102,14 +102,14 @@ final class VaultApi {
 
   static String createPlaceholderSubmissionQuery(String submissionId36) {
     return String.format(CREATE_PLACEHOLDER_SUBMISSION_PREFIX + " (%d) ON CONFLICT DO NOTHING;",
-        Long.parseLong(submissionId36, 36));
+        Utils.id36To10(submissionId36));
   }
 
   static PreparedStatement createPlaceholderSubmission(Connection conn, String submissionId36)
       throws SQLException {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -127,7 +127,7 @@ final class VaultApi {
       throws SQLException {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -139,7 +139,7 @@ final class VaultApi {
   static String deleteObservationsQuery(String submissionId36) {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -159,7 +159,7 @@ final class VaultApi {
     }
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -181,7 +181,7 @@ final class VaultApi {
   static String insertObservationsQuery(String submissionId36, Answer answer) {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -209,19 +209,20 @@ final class VaultApi {
   private static final String DELETE_SUBMISSIONS_PREFIX = "DELETE FROM submissions WHERE submission_id IN (";
   private static final String DELETE_SUBMISSIONS_SUFFIX = ");";
 
-  static PreparedStatement deleteSubmissions(Connection conn, List<String> submissionIds) {
+  static PreparedStatement deleteSubmissions10(Connection conn, Collection<Long> submissionIds)
+      throws SQLException {
     if (submissionIds == null || submissionIds.isEmpty()) {
       return null;
     }
-    return null; // FIXME
+    return conn.prepareStatement(deleteSubmissions10Query(submissionIds));
   }
 
-  static String deleteSubmissionsQuery(Collection<String> submissionIds) {
-    if (submissionIds == null || submissionIds.isEmpty()) {
+  static String deleteSubmissions10Query(Collection<Long> submissionId10s) {
+    if (submissionId10s == null || submissionId10s.isEmpty()) {
       return null;
     }
     return DELETE_SUBMISSIONS_PREFIX
-        + String.join(",", submissionIds)
+        + submissionId10s.stream().map(String::valueOf).collect(Collectors.joining(", "))
         + DELETE_SUBMISSIONS_SUFFIX;
   }
 

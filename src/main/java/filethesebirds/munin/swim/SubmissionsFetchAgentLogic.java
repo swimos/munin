@@ -36,7 +36,7 @@ import swim.structure.Value;
 final class SubmissionsFetchAgentLogic {
 
   private static final String CALLER_LANE = "preemptFetch";
-  private static final String CALLER_TASK = "[GatherTask]";
+  private static final String CALLER_TASK = "[GatherSubmissionsTask]";
   private static final Value SHELVE_PAYLOAD = Text.from("shelve");
 
   private SubmissionsFetchAgentLogic() {
@@ -44,23 +44,23 @@ final class SubmissionsFetchAgentLogic {
 
   static void preemptSubmissionsFetchOnCommand(SubmissionsFetchAgent runtime, Value v) {
     Logic.trace(runtime, CALLER_LANE, "Begin onCommand(" + v + ")");
-    runtime.fetchTimer = Logic.scheduleRecurringBlocker(runtime, "preemptFetch",
+    runtime.fetchTimer = Logic.scheduleRecurringBlocker(runtime, CALLER_TASK,
         runtime::fetchTimer, 3000L, 180000L, () -> fetchTimerAction(runtime));
     Logic.trace(runtime, CALLER_LANE, "End onCommand()");
   }
 
   private static void fetchTimerAction(SubmissionsFetchAgent runtime) {
-    final long until = System.currentTimeMillis() - MuninConstants.lookbackMillis();
+    final long until = (System.currentTimeMillis() - MuninConstants.lookbackMillis()) / 1000L;
     final Map<String, Submission> liveCandidates = new HashMap<>(256);
     final Map<Long, Submission> shelfCandidates = Shared.liveSubmissions().activeSnapshot();
 
     // Gather (fetch active submissions into liveSubmissions and identify shelf candidates, but do not update vault)
-    Logic.trace(runtime, CALLER_TASK, "Will seek submissions through epoch " + until);
+    Logic.trace(runtime, CALLER_TASK, "Will seek submissions through epoch (s) " + until);
     new GatherAgentTask(until, runtime, liveCandidates, shelfCandidates).run();
-    Logic.debug(runtime, CALLER_TASK, "Gathered " + liveCandidates.size() + " live submissions through epoch " + until);
+    Logic.debug(runtime, CALLER_TASK, "Gathered " + liveCandidates.size() + " live submissions through epoch (s) " + until);
 
     // Shelve (update liveSubmissions#shelved and remove entries from vault as needed)
-    if (!shelfCandidates.isEmpty()) {
+    if (liveCandidates.size() > 0 && !shelfCandidates.isEmpty()) {
       final String joinedCandidates = shelfCandidates.keySet().stream()
           .map(k -> "t3_" + Utils.id10To36(k))
           .collect(Collectors.joining(","));
@@ -97,10 +97,11 @@ final class SubmissionsFetchAgentLogic {
             didShelve.forEach(s -> {
               runtime.command("/submission/" + s, "shelveSubmission", SHELVE_PAYLOAD);
             });
+
             Logic.doOrLogVaultAction(runtime, CALLER_TASK,
                 "Will remove submissions with IDs " + didShelve + " from vault",
                 "Failed to remove submissions from vault",
-                client -> client.deleteSubmissions(didShelve));
+                client -> client.deleteSubmissions36(didShelve));
           }
         });
   }
@@ -199,7 +200,7 @@ final class SubmissionsFetchAgentLogic {
 
     @Override
     Optional<RedditResponse<Submission[]>> doFetch(RedditClient.Callable<Submission[]> callable) {
-      return Logic.doRedditCallable(this.runtime, "[GatherTask]", "getNewPosts",
+      return Logic.doRedditCallable(this.runtime, CALLER_TASK, "getNewPosts",
           callable);
     }
 
@@ -211,7 +212,7 @@ final class SubmissionsFetchAgentLogic {
     @Override
     void run() {
       super.run();
-      this.shelfCandidates.entrySet().removeIf(e -> e.getValue().createdUtc() * 1000L <= this.until);
+      this.shelfCandidates.entrySet().removeIf(e -> e.getValue().createdUtc() <= this.until);
     }
 
     @Override
@@ -249,7 +250,7 @@ final class SubmissionsFetchAgentLogic {
 
     @Override
     Optional<RedditResponse<Submission[]>> doFetch(RedditClient.Callable<Submission[]> callable) {
-      return Logic.coalesceRedditCallable("getNewPosts", callable);
+      return Logic.doRedditCallable("getNewPosts", callable);
     }
 
     @Override

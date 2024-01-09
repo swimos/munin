@@ -16,6 +16,7 @@ package filethesebirds.munin.connect.reddit;
 
 import filethesebirds.munin.connect.http.HttpUtils;
 import filethesebirds.munin.connect.http.StatusCodeException;
+import filethesebirds.munin.connect.reddit.response.EmptyRedditResponse;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Submission;
 import java.io.InputStream;
@@ -170,16 +171,9 @@ public class RedditClient {
         BodyHandlers.ofInputStream()));
   }
 
-  public void removeEditDel(String id) throws StatusCodeException {
-    makeApiCall(() -> RedditApi.postEditDel(id, this.grant.currentToken(), this.grant.userAgent()),
-        BodyHandlers.discarding());
-  }
-
-  @FunctionalInterface
-  public interface Runnable {
-
-    void run(RedditClient client) throws StatusCodeException;
-
+  public RedditResponse<Void> removeEditDel(String fullname) throws StatusCodeException {
+    return new EmptyRedditResponse(makeApiCall(() -> RedditApi.postEditDel(fullname, this.grant.currentToken(), this.grant.userAgent()),
+        BodyHandlers.ofInputStream()));
   }
 
   @FunctionalInterface

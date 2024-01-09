@@ -155,8 +155,8 @@ final class RedditApi {
     return post(POST_EDIT_EDITUSERTEXT_URI, HttpRequest.BodyPublishers.ofString(payload), token, userAgent);
   }
 
-  public static HttpRequest postEditDel(String id, String token, String userAgent) {
-    final String payload = String.format("id=%s", id);
+  public static HttpRequest postEditDel(String fullname, String token, String userAgent) {
+    final String payload = String.format("id=%s", fullname);
     return post(POST_EDIT_DEL_URI, HttpRequest.BodyPublishers.ofString(payload), token, userAgent);
   }
 

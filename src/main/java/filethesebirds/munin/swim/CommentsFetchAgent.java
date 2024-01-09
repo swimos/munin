@@ -25,7 +25,9 @@ import swim.concurrent.TimerRef;
  * processing by appropriate {@link SubmissionAgent SubmissionAgents}.
  *
  * <p>This agent does not directly modify vault or a {@code LiveSubmissions}
- * instance.
+ * instance. It may <i>read</i> from a {@code LiveSubmissions} instance to help
+ * decide whether a comment is unworthy of further processing (e.g. its
+ * submission is expired or shelved).
  */
 public class CommentsFetchAgent extends AbstractAgent {
 

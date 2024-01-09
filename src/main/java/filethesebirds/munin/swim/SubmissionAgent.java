@@ -26,10 +26,8 @@ import swim.api.agent.AbstractAgent;
 import swim.api.lane.CommandLane;
 import swim.api.lane.MapLane;
 import swim.api.lane.ValueLane;
-import swim.concurrent.AbstractTask;
 import swim.structure.Form;
 import swim.structure.Num;
-import swim.structure.Record;
 import swim.structure.Value;
 
 /**
@@ -107,37 +105,11 @@ public class SubmissionAgent extends AbstractAgent {
   // Callback logic
 
   protected void infoDidSet(Submission n, Submission o) {
-    if (n == null) {
-      return;
-    }
-    final Answer ans = this.answer.get();
-    this.status.set(merge(n, ans));
-    if ((o == null || o.id() == null || o.id().isEmpty())
-        && (ans != null && !ans.taxa().isEmpty())) {
-      asyncStage().task(new AbstractTask() {
-
-        @Override
-        public void runTask() {
-          Shared.vaultClient().assignObservations(getProp("id").stringValue(), ans);
-        }
-
-        @Override
-        public boolean taskWillBlock() {
-          return true;
-        }
-
-      }).cue();
-    }
+    SubmissionAgentLogic.infoDidSet(this, n, o);
   }
 
   protected void answerDidSet(Answer n, Answer o) {
-    Logic.info(this, "answer", "Updated answer to " + n + " from " + o);
-    this.status.set(merge(this.info.get(), n));
-    Logic.info(this, "answer", null);
-    Logic.executeOrLogVaultAction(this, "answer",
-        "FIXME",
-        "Failed to assign observations",
-        client -> client.assignObservations(getProp("id").stringValue(), n));
+    SubmissionAgentLogic.answerDidSet(this, n, o);
   }
 
   protected void statusDidSet(Value n, Value o) {
@@ -160,34 +132,12 @@ public class SubmissionAgent extends AbstractAgent {
     SubmissionAgentLogic.motionsDidUpdate(this);
   }
 
-  private static Value merge(Submission s, Answer a) {
-    if (s == null || s.id() == null || s.id().isEmpty()) {
-      return Value.extant();
-    }
-    final Record r = Record.create(12).attr("status")
-        // info
-        .slot("id", s.id())
-        .slot("title", s.title())
-        .slot("flair", s.flair())
-        .slot("thumbnail", s.thumbnail())
-        .slot("createdUtc", s.createdUtc())
-        .slot("karma", s.karma())
-        .slot("commentCount", s.commentCount());
-    if (a == null || a.taxa().isEmpty()) {
-      return r.slot("taxa", Value.extant()).slot("reviewers", Value.extant());
-    } else {
-      return r.slot("taxa", Forms.forSetString().mold(a.taxa()).toValue())
-          .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
-              : Forms.forSetString().mold(a.reviewers()).toValue());
-    }
-  }
-
   @Override
   public void didStart() {
     Logic.info(this, "didStart()", "");
     try {
       final Num id10 =  Num.from(Utils.id36To10(getProp("id").stringValue(null)));
-      command("/live", "subscribe", id10);
+      command("/submissions", "subscribe", id10);
     } catch (Exception e) {
       didFail(e);
       close();

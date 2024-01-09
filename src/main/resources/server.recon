@@ -4,7 +4,7 @@ munin: @fabric {
 
   # Singleton Web Agent with multiple traits
   @node {
-    uri: "/live"
+    uri: "/submissions"
     @agent(class: "filethesebirds.munin.swim.SubmissionsAgent")
     @agent(class: "filethesebirds.munin.swim.SubmissionsFetchAgent")
     @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")

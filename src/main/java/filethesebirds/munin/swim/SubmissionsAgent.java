@@ -75,6 +75,18 @@ public class SubmissionsAgent extends AbstractAgent {
   protected HttpLane<Value> unansweredApi = this.<Value>httpLane()
       .doRespond(this::unansweredApiDoRespond);
 
+  @SwimLane("api/unreviewed")
+  protected HttpLane<Value> unreviewedApi = this.<Value>httpLane()
+      .doRespond(this::unreviewedApiDoRespond);
+
+  @SwimLane("api/answered")
+  protected HttpLane<Value> answeredApi = this.<Value>httpLane()
+      .doRespond(this::answeredApiDoRespond);
+
+  @SwimLane("api/reviewed")
+  protected HttpLane<Value> reviewedApi = this.<Value>httpLane()
+      .doRespond(this::reviewedApiDoRespond);
+
   protected void statusesDidUpdate(long k, Value n, Value o) {
     SubmissionsAgentLogic.statusesDidUpdate(this, k, n, o);
   }
@@ -93,6 +105,18 @@ public class SubmissionsAgent extends AbstractAgent {
 
   HttpResponse<?> unansweredApiDoRespond(HttpRequest<Value> request) {
     return SubmissionsAgentLogic.unansweredApiDoRespond(this, request);
+  }
+
+  HttpResponse<?> unreviewedApiDoRespond(HttpRequest<Value> request) {
+    return SubmissionsAgentLogic.unreviewedApiDoRespond(this, request);
+  }
+
+  HttpResponse<?> answeredApiDoRespond(HttpRequest<Value> request) {
+    return SubmissionsAgentLogic.answeredApiDoRespond(this, request);
+  }
+
+  HttpResponse<?> reviewedApiDoRespond(HttpRequest<Value> request) {
+    return SubmissionsAgentLogic.reviewedApiDoRespond(this, request);
   }
 
   @Override

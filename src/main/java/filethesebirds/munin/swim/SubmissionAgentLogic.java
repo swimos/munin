@@ -18,7 +18,9 @@ import filethesebirds.munin.Utils;
 import filethesebirds.munin.connect.ebird.EBirdApiException;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
+import filethesebirds.munin.digest.Forms;
 import filethesebirds.munin.digest.Motion;
+import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.answer.Answers;
 import filethesebirds.munin.digest.motion.EBirdExtractPurify;
@@ -35,12 +37,45 @@ final class SubmissionAgentLogic {
   private SubmissionAgentLogic() {
   }
 
-  static void infoDidSet() {
-
+  static void infoDidSet(SubmissionAgent runtime, Submission n, Submission o) {
+    Logic.trace(runtime, "info", "Begin didSet(" + n + ", " + o + ")");
+    if (n != null) {
+      final Answer ans = runtime.answer.get();
+      runtime.status.set(merge(n, ans));
+    }
+    Logic.trace(runtime, "info", "End didSet()");
   }
 
-  static void answerDidSet() {
+  static void answerDidSet(SubmissionAgent runtime, Answer n, Answer o) {
+    Logic.trace(runtime, "answer", "Begin didSet(" + n + ", " + o + ")");
+    runtime.status.set(merge(runtime.info.get(), n));
+    Logic.executeOrLogVaultAction(runtime, "answer",
+        "Assigning observations " + n + " under " + runtime.getProp("id").stringValue(null),
+        "Failed to assign observations",
+        client -> client.assignObservations(runtime.getProp("id").stringValue(), n));
+    Logic.trace(runtime, "answer", "End didSet()");
+  }
 
+  private static Value merge(Submission s, Answer a) {
+    if (s == null || s.id() == null || s.id().isEmpty()) {
+      return Value.extant();
+    }
+    final Record r = Record.create(12).attr("status")
+        // info
+        .slot("id", s.id())
+        .slot("title", s.title())
+        .slot("flair", s.flair())
+        .slot("thumbnail", s.thumbnail())
+        .slot("createdUtc", s.createdUtc())
+        .slot("karma", s.karma())
+        .slot("commentCount", s.commentCount());
+    if (a == null || a.taxa().isEmpty()) {
+      return r.slot("taxa", Value.extant()).slot("reviewers", Value.extant());
+    } else {
+      return r.slot("taxa", Forms.forSetString().mold(a.taxa()).toValue())
+          .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
+              : Forms.forSetString().mold(a.reviewers()).toValue());
+    }
   }
 
   static void expireOnCommand(SubmissionAgent runtime, Value v) {
@@ -57,7 +92,7 @@ final class SubmissionAgentLogic {
       Logic.executeOrLogVaultAction(runtime, caller,
           "Will delete",
           "asdf",
-          client -> client.deleteSubmission(id10));
+          client -> client.deleteSubmission10(id10));
     });
   }
 
@@ -104,16 +139,12 @@ final class SubmissionAgentLogic {
     }
   }
 
-  // ===========================================================================
-  // Potentially blocking logic
-  // ===========================================================================
-
   static void onNewComment(SubmissionAgent runtime, String lane, Comment comment) {
     Logic.info(runtime, lane, "Received comment from " + comment.author());
     if (Users.userIsPublisher(comment.author())) {
       Logic.debug(runtime, lane, "Will defer publisher=" + comment.author()
-          + " comment analysis to ThrottledPublishingAgent");
-      runtime.command("/throttledPublish", "addPublisherComment",
+          + " comment analysis to PublishingAgent");
+      runtime.command("/submissions", "addPublisherComment",
           Comment.form().mold(comment).toValue());
       return;
     }
@@ -122,9 +153,9 @@ final class SubmissionAgentLogic {
       Logic.info(runtime, lane, "Will shelve submission");
       if (Shared.liveSubmissions().shelve(runtime, lane, comment.submissionId())) {
         Logic.executeOrLogVaultAction(runtime, lane,
-            "",
-            "",
-            client -> client.deleteSubmission(comment.submissionId()));
+            "Deleting submission " + comment.submissionId(),
+            "Failed to delete submission " + comment.submissionId(),
+            client -> client.deleteSubmission36(comment.submissionId()));
       }
       return;
     }

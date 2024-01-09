@@ -28,8 +28,7 @@ final class SubmissionsAgentLogic {
 
   private static final long EXPIRY_PERIOD_MS = 15L * 60 * 1000;
 
-  private static final String UNANSWERED_PAGE_FMT = "<!doctypehtml><title>munin/unanswered</title><h2>Recent Uncatalogued Submissions</h2>"
-      + "<div><h3>Links</h3><ul>%s</ul></div>"
+  private static final String PAGE_FMT_SUFFIX = "<div><h3>Links</h3><ul>%s</ul></div>"
       + "<div>"
         + "<h3>Notes</h3>"
         + "<ul><li>The links utilize Reddit's <i>by_id</i> API to provide uncatalogued submissions from the last 36 hours ordered chronologically, 20 submissions per link."
@@ -38,6 +37,14 @@ final class SubmissionsAgentLogic {
         + "<li>Expect frequent changes to this work-in-progress page."
         + "</ul>"
       + "</div>";
+  private static final String UNANSWERED_PAGE_FMT = "<!doctypehtml><title>munin/unanswered</title><h2>Recent Unanswered Submissions</h2>"
+      + PAGE_FMT_SUFFIX;
+  private static final String UNREVIEWED_PAGE_FMT = "<!doctypehtml><title>munin/unreviewed</title><h2>Recent Unreviewed Submissions</h2>"
+      + PAGE_FMT_SUFFIX;
+  private static final String ANSWERED_PAGE_FMT = "<!doctypehtml><title>munin/answered</title><h2>Recent Answered Submissions</h2>"
+      + PAGE_FMT_SUFFIX;
+  private static final String REVIEWED_PAGE_FMT = "<!doctypehtml><title>munin/reviewed</title><h2>Recent Reviewed Submissions</h2>"
+      + PAGE_FMT_SUFFIX;
 
   private SubmissionsAgentLogic() {
   }
@@ -75,10 +82,10 @@ final class SubmissionsAgentLogic {
   static void subscribeOnCommand(SubmissionsAgent runtime, long id10) {
     Logic.trace(runtime, "subscribe", "Begin onCommand(" + id10 + ")");
     if (id10 <= 0) {
-      Logic.warn(runtime, "subscribe", "Will not downlink to nonpositive id10");
+      Logic.warn(runtime, "subscribe", "Will not open downlink to nonpositive id10");
     } else {
       final String nodeUri = "/submission/" + Utils.id10To36(id10);
-      Logic.info(runtime, "subscribe", "Will downlink to " + nodeUri + "#status");
+      Logic.info(runtime, "subscribe", "Will open downlink to " + nodeUri + "#status");
       runtime.statuses.downlink(id10)
           .nodeUri(nodeUri)
           .laneUri("status")
@@ -97,17 +104,32 @@ final class SubmissionsAgentLogic {
 
   static HttpResponse<?> unansweredApiDoRespond(SubmissionsAgent runtime, HttpRequest<Value> request) {
     return HttpResponse.create(HttpStatus.OK)
-        .body(body(runtime.unanswered.keySet()), MediaType.textHtml());
+        .body(body(UNANSWERED_PAGE_FMT, runtime.unanswered.keySet()), MediaType.textHtml());
   }
 
-  private static String body(Set<Long> ids) {
+  static HttpResponse<?> unreviewedApiDoRespond(SubmissionsAgent runtime, HttpRequest<Value> request) {
+    return HttpResponse.create(HttpStatus.OK)
+        .body(body(UNREVIEWED_PAGE_FMT, runtime.unreviewed.keySet()), MediaType.textHtml());
+  }
+
+  static HttpResponse<?> answeredApiDoRespond(SubmissionsAgent runtime, HttpRequest<Value> request) {
+    return HttpResponse.create(HttpStatus.OK)
+        .body(body(ANSWERED_PAGE_FMT, runtime.answered.keySet()), MediaType.textHtml());
+  }
+
+  static HttpResponse<?> reviewedApiDoRespond(SubmissionsAgent runtime, HttpRequest<Value> request) {
+    return HttpResponse.create(HttpStatus.OK)
+        .body(body(REVIEWED_PAGE_FMT, runtime.reviewed.keySet()), MediaType.textHtml());
+  }
+
+  private static String body(String fmt, Set<Long> ids) {
     final Iterator<Long> itr = ids.iterator();
     String oneLink = oneLink(itr, 1);
     StringBuilder links = new StringBuilder();
     for (int i = 1; oneLink != null; i++, oneLink = oneLink(itr, i)) {
       links.append(oneLink);
     }
-    return String.format(UNANSWERED_PAGE_FMT, links.toString());
+    return String.format(fmt, links.toString());
   }
 
   private static String oneLink(Iterator<Long> ids, int linkId) {
@@ -129,7 +151,7 @@ final class SubmissionsAgentLogic {
     Logic.info(runtime, "didStart()", "");
     Logic.debug(runtime, "didStart()", "Scheduling timer tick for " + EXPIRY_PERIOD_MS + " ms");
     if (runtime.expiryTimer != null) {
-      Logic.debug(runtime, "willClose()", "Canceling expiryTimer");
+      Logic.debug(runtime, "didStart()", "Canceling expiryTimer");
       runtime.expiryTimer.cancel();
       runtime.expiryTimer = null;
     }

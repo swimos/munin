@@ -96,8 +96,8 @@ public final class Coalescence {
   }
 
   public void startFetchTasks() {
-    swim.command("/live", "preemptSubmissionsFetch", Text.from("preempt"));
-    swim.command("/live", "preemptCommentsFetch", Comment.form().mold(this.bookmark).toValue());
+    swim.command("/submissions", "preemptSubmissionsFetch", Text.from("preempt"));
+    swim.command("/submissions", "preemptCommentsFetch", Comment.form().mold(this.bookmark).toValue());
   }
 
   public static Coalescence coalesce(WarpRef swim) {

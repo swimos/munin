@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 public abstract class VaultClient {
 
@@ -33,13 +34,17 @@ public abstract class VaultClient {
 
   public abstract void assignObservations(String submissionId36, Answer answer);
 
-  public abstract void deleteSubmission(long submissionId10);
+  public abstract void deleteSubmission10(long submissionId10);
 
-  public final void deleteSubmission(String submissionId36) {
-    deleteSubmission(Utils.id36To10(submissionId36));
+  public final void deleteSubmission36(String submissionId36) {
+    deleteSubmission10(Utils.id36To10(submissionId36));
   }
 
-  public abstract void deleteSubmissions(Collection<String> submissionID36s);
+  public abstract void deleteSubmissions10(Collection<Long> submissions10);
+
+  public final void deleteSubmissions36(Collection<String> submissions36) {
+    deleteSubmissions10(submissions36.stream().map(Utils::id36To10).collect(Collectors.toSet()));
+  }
 
   public static VaultClient fromStream(InputStream is) {
     return new Pooled(Utils.credentialsFromStream(is, p -> new HikariDataSource(new HikariConfig(p))));
@@ -75,22 +80,21 @@ public abstract class VaultClient {
     }
 
     @Override
-    public void assignObservations(String submissionId36, Answer answer) {
+    public void assignObservations(String submission36, Answer answer) {
       if (answer == null || answer.taxa().isEmpty()) {
-        // TODO: should we clear observations still, since that's what the DRY variant does?
         return;
       }
       try (final Connection conn = getConnection()) {
         conn.setAutoCommit(false);
-        final PreparedStatement placeholder = VaultApi.createPlaceholderSubmission(conn, submissionId36);
+        final PreparedStatement placeholder = VaultApi.createPlaceholderSubmission(conn, submission36);
         if (placeholder != null) {
           placeholder.executeUpdate();
         }
-        final PreparedStatement delete = VaultApi.deleteObservations(conn, submissionId36);
+        final PreparedStatement delete = VaultApi.deleteObservations(conn, submission36);
         if (delete != null) {
           delete.executeUpdate();
         }
-        final PreparedStatement insert = VaultApi.insertObservations(conn, submissionId36, answer);
+        final PreparedStatement insert = VaultApi.insertObservations(conn, submission36, answer);
         if (insert != null) {
           insert.executeBatch();
         }
@@ -103,20 +107,32 @@ public abstract class VaultClient {
     }
 
     @Override
-    public void deleteSubmission(long submissionId10) {
+    public void deleteSubmission10(long submission10) {
       try (final Connection conn = getConnection()) {
         conn.setAutoCommit(false);
-        final PreparedStatement st = VaultApi.deleteSubmission(conn, submissionId10);
+        final PreparedStatement st = VaultApi.deleteSubmission(conn, submission10);
         st.executeUpdate();
         conn.commit();
       } catch (SQLException e) {
-        throw new RuntimeException("Failed to delete from vault submissions", e);
+        throw new RuntimeException("Failed to delete vault submissions", e);
       }
     }
 
     @Override
-    public void deleteSubmissions(Collection<String> submissionID36s) {
-      // FIXME
+    public void deleteSubmissions10(Collection<Long> submissions10) {
+      if (submissions10 == null || submissions10.isEmpty()) {
+        return;
+      }
+      try (final Connection conn = getConnection()) {
+        conn.setAutoCommit(false);
+        final PreparedStatement statement = VaultApi.deleteSubmissions10(conn, submissions10);
+        if (statement != null) {
+          statement.executeBatch();
+          conn.commit();
+        }
+      } catch (SQLException e) {
+        throw new RuntimeException("Failed to delete vault submissions", e);
+      }
     }
 
   }
@@ -138,13 +154,13 @@ public abstract class VaultClient {
     }
 
     @Override
-    public void deleteSubmission(long submissionId10) {
+    public void deleteSubmission10(long submissionId10) {
       System.out.println("Dry query: " + VaultApi.deleteSubmissionQuery(submissionId10));
     }
 
     @Override
-    public void deleteSubmissions(Collection<String> submissionID36s) {
-      // FIXME
+    public void deleteSubmissions10(Collection<Long> submissions10) {
+      System.out.println("Dry query: " + VaultApi.deleteSubmissions10Query(submissions10));
     }
 
   }

@@ -28,6 +28,7 @@ import swim.structure.Text;
 
 final class CommentsFetchAgentLogic {
 
+  private static final String CALLER_TASK = "[GatherCommentsTask]";
   private static final Text PREEMPT_SUBMISSIONS_FETCH_PAYLOAD = Text.from("preempt");
 
   private CommentsFetchAgentLogic() {
@@ -45,7 +46,7 @@ final class CommentsFetchAgentLogic {
       runtime.didFail(e);
     }
     if (runtime.afterId10 > 0) {
-      Logic.scheduleRecurringBlocker(runtime, caller, runtime::fetchTimer,
+      runtime.fetchTimer = Logic.scheduleRecurringBlocker(runtime, caller, runtime::fetchTimer,
           1000L, 60000L, () -> new GatherAgentTask(runtime).run());
     } else {
       Logic.error(runtime, caller, "Timer did not fire due to invalid initial conditions");
@@ -84,14 +85,14 @@ final class CommentsFetchAgentLogic {
     void run() {
       gatherComments(RedditClient::fetchMaxUndocumentedComments);
       if (this.runtime.afterId10 == this.newBookmarkId10 && Math.random() < .2) {
-        Logic.debug(this.runtime, "[GatherTask]", "Will cue HintCache prune");
+        Logic.debug(this.runtime, CALLER_TASK, "Will cue HintCache prune");
         HintCache.prune();
       }
       this.runtime.afterId10 = this.newBookmarkId10;
     }
 
     private void gatherComments(RedditClient.Callable<Comment[]> action) {
-      Logic.doRedditCallable(this.runtime, "[GatherTask]", "getNewComments", action)
+      Logic.doRedditCallable(this.runtime, CALLER_TASK, "getNewComments", action)
           .flatMap(response -> processBatch(response.essence()))
           .ifPresent(fullname -> gatherComments(client -> client.fetchUndocumentedCommentsAfter(fullname)));
     }
@@ -123,28 +124,28 @@ final class CommentsFetchAgentLogic {
       }
       final long subId10 = Utils.id36To10(c.submissionId());
       if (Shared.liveSubmissions().isShelved(subId10)) {
-        Logic.debug(this.runtime, "[GatherTask]", "Ignoring comment to shelved submission " + c.submissionId());
+        Logic.debug(this.runtime, CALLER_TASK, "Ignoring comment to shelved submission " + c.submissionId());
       } else if (Shared.liveSubmissions().getActive(subId10) != null) {
-        Logic.debug(this.runtime, "[GatherTask]", "Found comment to active submission " + c.submissionId());
+        Logic.debug(this.runtime, CALLER_TASK, "Found comment to active submission " + c.submissionId());
         this.runtime.command(submissionNodeUri(c), "addNewComment", Comment.form().mold(c).toValue());
       } else if (helper(Shared.liveSubmissions().getLatest(), subId10, c.submissionId())) {
-        Logic.info(this.runtime, "[GatherTask]", "Found comment to brand-new submission " + c.submissionId()
+        Logic.info(this.runtime, CALLER_TASK, "Found comment to brand-new submission " + c.submissionId()
             + ((state == 2) ? "" : ", will preempt SubmissionsFetch"));
         if (state != 2) {
-          this.runtime.command("/live", "preemptSubmissionsFetch", PREEMPT_SUBMISSIONS_FETCH_PAYLOAD);
+          this.runtime.command("/submissions", "preemptSubmissionsFetch", PREEMPT_SUBMISSIONS_FETCH_PAYLOAD);
         }
         this.runtime.command(submissionNodeUri(c), "addNewComment", Comment.form().mold(c).toValue());
-        return 2; // Tells caller we're not done, but have preempted SubmissionsFetch this iteration
+        return 2; // Tells caller we're not done, but have preempted SubmissionsFetch once this iteration
       } else if (helper(Shared.liveSubmissions().getEarliest(), subId10, c.submissionId())) {
-        Logic.info(this.runtime, "[GatherTask]", "Found comment to possibly-active submission " + c.submissionId()
+        Logic.info(this.runtime, CALLER_TASK, "Found comment to possibly-active submission " + c.submissionId()
             + ((state == 2) ? "" : ", will preempt SubmissionsFetch"));
         if (state != 2) {
-          this.runtime.command("/live", "preemptSubmissionsFetch", PREEMPT_SUBMISSIONS_FETCH_PAYLOAD);
+          this.runtime.command("/submissions", "preemptSubmissionsFetch", PREEMPT_SUBMISSIONS_FETCH_PAYLOAD);
         }
         this.runtime.command(submissionNodeUri(c), "addNewComment", Comment.form().mold(c).toValue());
         return 2;
       } else {
-        Logic.debug(this.runtime, "[GatherTask]", "Ignoring comment to expired submission " + c.submissionId());
+        Logic.debug(this.runtime, CALLER_TASK, "Ignoring comment to expired submission " + c.submissionId());
       }
       return state;
     }
@@ -155,7 +156,7 @@ final class CommentsFetchAgentLogic {
 
     private boolean helper(long lower10, long subId10, String subId36) {
       if (lower10 < 0) {
-        Logic.warn(this.runtime, "[GatherTask]", "Empty LiveSubmissions during comment analysis, "
+        Logic.warn(this.runtime, CALLER_TASK, "Empty LiveSubmissions during comment analysis, "
             + "will assume submission " + subId36 + " is expired");
         return false;
       }
@@ -192,7 +193,7 @@ final class CommentsFetchAgentLogic {
 
     private void gatherComments(RedditClient.Callable<Comment[]> action) {
       System.out.println("[TRACE] Coalescence#commentsFetch: Issuing fetch request");
-      Logic.coalesceRedditCallable("getNewComments", action)
+      Logic.doRedditCallable("getNewComments", action)
           .flatMap(response -> processBatch(response.essence()))
           .ifPresent(id36 -> gatherComments(client -> client.fetchUndocumentedCommentsAfter(id36)));
     }
@@ -250,7 +251,8 @@ final class CommentsFetchAgentLogic {
       if (Utils.id36To10(comment.submissionId()) <= this.boundaryId10) {
         System.out.println("[TRACE] Coalescence#commentsFetch: Saw comment to expired submission " + comment.submissionId());
       } else if (commentIsRemover(comment) || submissionAuthorIsDeleted(comment)) {
-        System.out.println("[TRACE] Coalescence#commentsFetch: Saw comment to submissionsFetch-absent post that would have been shelved anyway");
+        System.out.println("[TRACE] Coalescence#commentsFetch: Saw comment to submissionsFetch-absent submission "
+            + comment.submissionId() + " that would have been shelved anyway");
       } else {
         // FIXME: add as shelf candidate
         System.out.println("[WARN] Coalescence#commentsFetch: " + comment.submissionId() + " is a shelf candidate, but this logic isn't yet implemented");

@@ -140,52 +140,70 @@ final class Logic {
 
   static <V> Optional<RedditResponse<V>> doRedditCallable(AbstractAgent runtime, String caller, String actionName,
                                                           RedditClient.Callable<V> action) {
-    return performRedditCallable(action, s -> error(runtime, caller, s + "(" + actionName + ") "), "",
-        runtime::didFail);
+    return doRedditCallable(runtime, caller, actionName, action,
+        e -> error(runtime, caller, "(Reddit " + actionName + ") " + formatStatusCodeExceptionMsg("", e)));
   }
 
   static <V> Optional<RedditResponse<V>> doRedditCallable(AbstractAgent runtime, String caller, String actionName,
                                                           RedditClient.Callable<V> action,
                                                           Consumer<StatusCodeException> onStatusCodeException) {
-    return performRedditCallable(action, s -> error(runtime, caller, s + "(" + actionName + ") "), "",
-        runtime::didFail);
-  }
-
-  static <V> Optional<RedditResponse<V>> coalesceRedditCallable(String actionName,
-                                                                RedditClient.Callable<V> action) {
-    return performRedditCallable(action, System.out::println, "[ERROR] (" + actionName + ") ",
-        Throwable::printStackTrace);
-  }
-
-  private static <V> Optional<RedditResponse<V>>
-  performRedditCallable(RedditClient.Callable<V> action, Consumer<String> log, String logPrefix,
-                        Consumer<StatusCodeException> onStatusCodeException,
-                        Consumer<Throwable> onVagueHttpConnectException) {
+    debug(runtime, caller, "Will perform Reddit " + actionName);
     try {
       return Optional.of(action.call(Shared.redditClient()));
     } catch (StatusCodeException e) {
       onStatusCodeException.accept(e);
     } catch (HttpConnectException e) {
       if (e.getCause() instanceof HttpTimeoutException) {
-        log.accept(logPrefix + "HTTP request timed out");
+        error(runtime, caller, "(Reddit " + actionName + ") HTTP request timed out");
       } else {
-        log.accept(logPrefix + "Reddit client task encountered HTTP failure");
-        onVagueHttpConnectException.accept(e.getCause());
+        error(runtime, caller, "(Reddit " + actionName + ") Reddit client task encountered HTTP failure");
+        runtime.didFail(e.getCause());
       }
     }
     return Optional.empty();
   }
 
-  private static <V> Optional<RedditResponse<V>>
-  performRedditCallable(RedditClient.Callable<V> action, Consumer<String> log, String logPrefix,
-                        Consumer<Throwable> onVagueHttpConnectException) {
-    return performRedditCallable(action, log, logPrefix,
-        e -> log.accept(formatStatusCodeExceptionMsg(logPrefix, e)),
-        onVagueHttpConnectException);
-
+  static <V> void executeRedditCallable(AbstractAgent runtime, String caller, String actionName,
+                                       RedditClient.Callable<V> action) {
+    executeBlocker(runtime, caller, () -> doRedditCallable(runtime, caller, actionName, action));
   }
 
-  static String formatStatusCodeExceptionMsg(String prefix, StatusCodeException e) {
+  static <V> void executeRedditCallable(AbstractAgent runtime, String caller, String actionName,
+                                        RedditClient.Callable<V> action,
+                                        Consumer<RedditResponse<V>> ifPresent) {
+    executeBlocker(runtime, caller, () -> doRedditCallable(runtime, caller, actionName, action)
+        .ifPresent(ifPresent));
+  }
+
+  static <V> Optional<RedditResponse<V>> doRedditCallable(String actionName, RedditClient.Callable<V> action) {
+    System.out.println("[DEBUG] Will perform Reddit " + actionName);
+    try {
+      return Optional.of(action.call(Shared.redditClient()));
+    } catch (StatusCodeException e) {
+      System.out.println("[ERROR] " + "(Reddit " + actionName + ") " + formatStatusCodeExceptionMsg("", e));
+    } catch (HttpConnectException e) {
+      if (e.getCause() instanceof HttpTimeoutException) {
+        System.out.println("[ERROR] " + "(Reddit " + actionName + ") HTTP request timed out");
+      } else {
+        System.out.println("[ERROR] " + "(Reddit " + actionName + ") Reddit client task encountered HTTP failure");
+        e.printStackTrace();
+      }
+    }
+    return Optional.empty();
+  }
+
+  static Optional<RedditResponse<Void>> doRedditDelete(AbstractAgent runtime, String caller,
+                                                       RedditClient.Callable<Void> action) {
+    // FIXME: Reddit responds with 200 even when it should throw 404.
+    //   If it ever changes to throw 404, add a custom onStatusCodeException arg to the call below
+    return doRedditCallable(runtime, caller, "deleteComment", action);
+  }
+
+  static void executeRedditDelete(AbstractAgent runtime, String caller, RedditClient.Callable<Void> action) {
+    executeBlocker(runtime, caller, () -> doRedditDelete(runtime, caller, action));
+  }
+
+  private static String formatStatusCodeExceptionMsg(String prefix, StatusCodeException e) {
     return prefix + "HTTP request failed with code="
         + e.status().code() + "; headers=" + e.headers();
   }
