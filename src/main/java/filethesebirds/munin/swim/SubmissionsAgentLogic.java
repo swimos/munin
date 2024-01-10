@@ -94,7 +94,8 @@ final class SubmissionsAgentLogic {
     Logic.trace(runtime, "subscribe", "End onCommand()");
   }
 
-  static void removeSubmission(SubmissionsAgent runtime, long v) {
+  static void removeSubmission(SubmissionsAgent runtime, String caller, long v) {
+    Logic.info(runtime, caller, "Will remove submission " + v + " from local lanes");
     runtime.statuses.remove(v);
     runtime.reviewed.remove(v);
     runtime.answered.remove(v);

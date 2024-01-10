@@ -133,7 +133,7 @@ final class LiveSubmissions {
   }
 
   void putActive(AbstractAgent runtime, String caller, long id10, Submission submission) {
-    if (this.active.put(id10, submission) != null) {
+    if (this.active.put(id10, submission) == null) {
       Logic.debug(runtime, caller, "Created new active submission " + submission);
     }
   }

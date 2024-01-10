@@ -217,7 +217,10 @@ final class CommentsFetchAgentLogic {
         return true;
       }
       updateMaps(c);
-      this.bookmark = c;
+      // Bookmark should only be the first ever comment processed
+      if (this.bookmark == null) {
+        this.bookmark = c;
+      }
       return false;
     }
 

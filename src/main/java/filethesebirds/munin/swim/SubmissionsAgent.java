@@ -52,7 +52,7 @@ public class SubmissionsAgent extends AbstractAgent {
       .onCommand(this::subscribeOnCommand);
 
   @SwimLane("expireSubmission")
-  protected CommandLane<Long> unsubscribe = this.<Long>commandLane()
+  protected CommandLane<Long> expireSubmission = this.<Long>commandLane()
       .onCommand(this::expireSubmissionOnCommand);
 
   @SwimLane("shelveSubmission")
@@ -96,11 +96,11 @@ public class SubmissionsAgent extends AbstractAgent {
   }
 
   protected void expireSubmissionOnCommand(long v) {
-    SubmissionsAgentLogic.removeSubmission(this, v);
+    SubmissionsAgentLogic.removeSubmission(this, "expireSubmission", v);
   }
 
   protected void shelveSubmissionOnCommand(long v) {
-    SubmissionsAgentLogic.removeSubmission(this, v);
+    SubmissionsAgentLogic.removeSubmission(this, "shelveSubmission", v);
   }
 
   HttpResponse<?> unansweredApiDoRespond(HttpRequest<Value> request) {

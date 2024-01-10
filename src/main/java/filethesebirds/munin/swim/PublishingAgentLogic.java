@@ -126,7 +126,12 @@ final class PublishingAgentLogic {
       runtime.publishQueue.remove(id10);
       final Value publishedAnswer = runtime.publishedAnswers.remove(id10);
       if (publishedAnswer instanceof Record) {
-        // TODO: insert into deleteQueue
+        final long commentId = publishedAnswer.get("id").longValue(-1L);
+        if (commentId < 0) {
+          Logic.warn(runtime, "shelveSubmission", "Ignored publishedAnswers entry " + publishedAnswer);
+        } else {
+          runtime.deleteQueue.put(commentId, id10);
+        }
       }
       runtime.answers.remove(id10);
     }

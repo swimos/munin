@@ -29,6 +29,7 @@ import filethesebirds.munin.digest.motion.ExtractParse;
 import filethesebirds.munin.digest.motion.Review;
 import swim.concurrent.AbstractTask;
 import swim.concurrent.TaskRef;
+import swim.structure.Num;
 import swim.structure.Record;
 import swim.structure.Value;
 
@@ -90,8 +91,8 @@ final class SubmissionAgentLogic {
     removeSubmission(runtime, caller, v, () -> {
       final long id10 = Utils.id36To10(runtime.getProp("id").stringValue());
       Logic.executeOrLogVaultAction(runtime, caller,
-          "Will delete",
-          "asdf",
+          "Will delete " + id10 + " from vault",
+          "Failed to delete " + id10 + " from vault",
           client -> client.deleteSubmission10(id10));
     });
   }
@@ -101,9 +102,12 @@ final class SubmissionAgentLogic {
     Logic.trace(runtime, caller, "Begin onCommand(" + v + ")");
     if (v.isDistinct()) {
       try {
+        final long id10 = Utils.id36To10(runtime.getProp("id").stringValue());
+        Logic.debug(runtime, caller, "Notifying /submissions of submission " + caller);
+        runtime.command("/submissions", caller + "Submission", Num.from(id10));
         purge.run();
       } catch (Exception e) {
-        Logic.warn(runtime, caller, "Failed to shelve, agent will still close");
+        Logic.warn(runtime, caller, "Failed to " + caller + ", agent will still close");
         runtime.didFail(e);
       } finally {
         clearLanes(runtime);

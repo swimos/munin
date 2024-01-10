@@ -1,3 +1,5 @@
+@kernel(class: 'filethesebirds.munin.swim.MuninLogKernel', level: 'debug')
+
 munin: @fabric {
   # Default plane is sufficient, but ensure to configure policy in code
   @plane(class: "swim.api.plane.AbstractPlane")

@@ -18,6 +18,7 @@ import filethesebirds.munin.Utils;
 import swim.api.auth.Identity;
 import swim.api.policy.AbstractPolicy;
 import swim.api.policy.PolicyDirective;
+import swim.uri.Uri;
 import swim.warp.CommandMessage;
 import swim.warp.Envelope;
 
@@ -32,10 +33,17 @@ public class MuninPolicy extends AbstractPolicy {
     if (envelope instanceof CommandMessage) {
       return forbid();
     }
+    final Uri nodeUri = envelope.nodeUri();
+    if (nodeUri == null) {
+      return super.authorize(envelope, identity);
+    }
     // no creating new dynamic agents
-    final long id10 = extractSubmissionId10(envelope.nodeUri().toString());
-    if (id10 < 0L || Shared.liveSubmissions().getActive(id10) == null) {
-      return forbid();
+    final String nodeStr = nodeUri.toString();
+    if (nodeStr != null && (nodeStr.startsWith("/submission/") || nodeStr.startsWith("submission/"))) {
+      final long id10 = extractSubmissionId10(envelope.nodeUri().toString());
+      if (id10 < 0L || Shared.liveSubmissions().getActive(id10) == null) {
+        return forbid();
+      }
     }
     return super.authorize(envelope, identity);
   }

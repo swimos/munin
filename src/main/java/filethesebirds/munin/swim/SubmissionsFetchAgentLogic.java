@@ -93,9 +93,9 @@ final class SubmissionsFetchAgentLogic {
           }
           if (i > 0) {
             Logic.info(runtime, CALLER_TASK, i + " of " + essence.length + " candidates were shelved, "
-                + "notifying SubmissionAgents and vault");
+                + "notifying SubmissionAgents and vault (id36s=" + didShelve + ")");
             didShelve.forEach(s -> {
-              runtime.command("/submission/" + s, "shelveSubmission", SHELVE_PAYLOAD);
+              runtime.command("/submission/" + s, "shelve", SHELVE_PAYLOAD);
             });
 
             Logic.doOrLogVaultAction(runtime, CALLER_TASK,
