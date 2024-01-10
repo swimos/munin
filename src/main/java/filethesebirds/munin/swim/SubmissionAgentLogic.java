@@ -214,6 +214,7 @@ final class SubmissionAgentLogic {
               } else {
                 Logic.error(runtime, "[PhasedPurifyTask]",
                     "Exception in processing hint for comment " + comment + ", aborting");
+                runtime.didFail(e);
               }
               return;
             }
