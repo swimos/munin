@@ -71,7 +71,7 @@ public abstract class VaultClient {
         conn.setAutoCommit(false);
         final PreparedStatement statement = VaultApi.upsertSubmissions(conn, submissions);
         if (statement != null) {
-          statement.executeBatch();
+          statement.executeUpdate();
           conn.commit();
         }
       } catch (SQLException e) {
@@ -96,7 +96,7 @@ public abstract class VaultClient {
         }
         final PreparedStatement insert = VaultApi.insertObservations(conn, submission36, answer);
         if (insert != null) {
-          insert.executeBatch();
+          insert.executeUpdate();
         }
         if (placeholder != null || insert != null || delete != null) {
           conn.commit();
@@ -127,7 +127,7 @@ public abstract class VaultClient {
         conn.setAutoCommit(false);
         final PreparedStatement statement = VaultApi.deleteSubmissions10(conn, submissions10);
         if (statement != null) {
-          statement.executeBatch();
+          statement.executeUpdate();
           conn.commit();
         }
       } catch (SQLException e) {

@@ -61,19 +61,37 @@ final class VaultApi {
     if (submissions == null || submissions.isEmpty()) {
       return null;
     }
-    final String template = UPSERT_SUBMISSIONS_PREFIX
-        + " (?, ?, ?, ?, ?, ?, ?)"
-        + UPSERT_SUBMISSIONS_SUFFIX;
+//    final String template = UPSERT_SUBMISSIONS_PREFIX
+//        + " (?, ?, ?, ?, ?, ?, ?)"
+//        + UPSERT_SUBMISSIONS_SUFFIX;
+//    final PreparedStatement st = conn.prepareStatement(template);
+//    for (Submission submission : submissions) {
+//      st.setLong(1, Utils.id36To10(submission.id()));
+//      st.setObject(2, "unknown", Types.OTHER);
+//      st.setTimestamp(3, epochSecondsToTimestamp(submission.createdUtc()));
+//      st.setInt(4, submission.karma());
+//      st.setInt(5, submission.commentCount());
+//      st.setString(6, submission.title());
+//      st.setObject(7, "unanswered", Types.OTHER); // status
+//      st.addBatch();
+//    }
+//    return st;
+    final String questions = "(?, ?, ?, ?, ?, ?, ?)";
+    final String template = UPSERT_SUBMISSIONS_PREFIX + " "
+            + submissions.stream().map(s -> questions).collect(Collectors.joining(", "))
+            + UPSERT_SUBMISSIONS_SUFFIX;
     final PreparedStatement st = conn.prepareStatement(template);
-    for (Submission submission : submissions) {
-      st.setLong(1, Utils.id36To10(submission.id()));
-      st.setObject(2, "unknown", Types.OTHER);
-      st.setTimestamp(3, epochSecondsToTimestamp(submission.createdUtc()));
-      st.setInt(4, submission.karma());
-      st.setInt(5, submission.commentCount());
-      st.setString(6, submission.title());
-      st.setObject(7, "unanswered", Types.OTHER); // status
-      st.addBatch();
+    final Iterator<Submission> itr = submissions.iterator();
+    for (int i = 0; itr.hasNext(); i++) {
+      final Submission submission = itr.next();
+      final int base = 7 * i;
+      st.setLong(base + 1, Utils.id36To10(submission.id()));
+      st.setObject(base + 2, "unknown", Types.OTHER);
+      st.setTimestamp(base + 3, epochSecondsToTimestamp(submission.createdUtc()));
+      st.setInt(base + 4, submission.karma());
+      st.setInt(base + 5, submission.commentCount());
+      st.setString(base + 6, submission.title());
+      st.setObject(base + 7, "unanswered", Types.OTHER); // status
     }
     return st;
   }
@@ -150,7 +168,8 @@ final class VaultApi {
       + " SELECT val.tax_ordinal, val.submission_id, submissions.upload_date"
       + " FROM (VALUES";
   private static final String INSERT_OBSERVATIONS_SUFFIX = ") val (tax_ordinal, submission_id)"
-      + " JOIN submissions USING (submission_id);";
+      + " JOIN submissions USING (submission_id)"
+      + " ON CONFLICT DO NOTHING";
 
   static PreparedStatement insertObservations(Connection conn, String submissionId36, Answer answer)
       throws SQLException {
@@ -163,17 +182,34 @@ final class VaultApi {
     } catch (Exception e) {
       return null;
     }
-    final PreparedStatement st = conn.prepareStatement(INSERT_OBSERVATIONS_PREFIX
-        + " (?, ?)" + INSERT_OBSERVATIONS_SUFFIX);
-    for (String code : answer.taxa()) {
-      final int ordinal = Taxonomy.ordinal(code);
+//    final PreparedStatement st = conn.prepareStatement(INSERT_OBSERVATIONS_PREFIX
+//        + " (?, ?)" + INSERT_OBSERVATIONS_SUFFIX);
+//    for (String code : answer.taxa()) {
+//      final int ordinal = Taxonomy.ordinal(code);
+//      if (ordinal < 0) {
+//        st.close();
+//        return null;
+//      }
+//      st.setInt(1, ordinal);
+//      st.setLong(2, submissionId);
+//      st.addBatch();
+//    }
+//    return st;
+    final String questions = "(?, ?)";
+    final String template = INSERT_OBSERVATIONS_PREFIX + " "
+        + answer.taxa().stream().map(s -> questions).collect(Collectors.joining(", "))
+        + INSERT_OBSERVATIONS_SUFFIX;
+    final PreparedStatement st = conn.prepareStatement(template);
+    final Iterator<String> itr = answer.taxa().iterator();
+    for (int i = 0; itr.hasNext(); i++) {
+      final int ordinal = Taxonomy.ordinal(itr.next());
       if (ordinal < 0) {
         st.close();
         return null;
       }
-      st.setInt(1, ordinal);
-      st.setLong(2, submissionId);
-      st.addBatch();
+      final int base = 2 * i;
+      st.setInt(base + 1, ordinal);
+      st.setLong(base + 2, submissionId);
     }
     return st;
   }
