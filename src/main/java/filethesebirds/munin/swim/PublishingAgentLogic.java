@@ -230,6 +230,7 @@ final class PublishingAgentLogic {
           subId10 = entry.getValue();
       final String commentId36 =  Utils.id10To36(commentId10),
           subId36 = Utils.id10To36(subId10);
+      runtime.deleteQueue.remove(commentId10);
       Logic.info(runtime, "throttleTimer", "Will asynchronously delete comment " + subId36 + "/" + commentId36);
       Logic.executeRedditDelete(runtime, "throttleTimer", client -> client.removeEditDel("t1_" + commentId36));
       return true;
