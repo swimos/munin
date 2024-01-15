@@ -31,10 +31,9 @@ final class SubmissionsAgentLogic {
   private static final String PAGE_FMT_SUFFIX = "<div><h3>Links</h3><ul>%s</ul></div>"
       + "<div>"
         + "<h3>Notes</h3>"
-        + "<ul><li>The links utilize Reddit's <i>by_id</i> API to provide uncatalogued submissions from the last 36 hours ordered chronologically, 20 submissions per link."
-        + "<li>The links <i>probably will not</i> load in Reddit apps (first-party or otherwise) but should work in any standard browser."
-        + "<li>If a <strong>removed or deleted</strong> post shows up in the list, you may leave a comment on the post to accelerate its removal."
-        + "<li>Expect frequent changes to this work-in-progress page."
+        + "<ul>"
+          + "<li>The links utilize Reddit's <i>by_id</i> API to provide submissions from the last 36 hours ordered chronologically, 20 submissions per link."
+          + "<li>The links <i>probably will not</i> load in Reddit apps but should work in any standard browser."
         + "</ul>"
       + "</div>";
   private static final String UNANSWERED_PAGE_FMT = "<!doctypehtml><title>munin/unanswered</title><h2>Recent Unanswered Submissions</h2>"

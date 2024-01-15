@@ -156,6 +156,7 @@ final class SubmissionAgentLogic {
         || CommentsFetchAgentLogic.submissionAuthorIsDeleted(comment)) {
       Logic.info(runtime, lane, "Will shelve submission");
       if (Shared.liveSubmissions().shelve(runtime, lane, comment.submissionId())) {
+        runtime.command("/submissions", "shelveSubmission", Num.from(Utils.id36To10(comment.submissionId())));
         Logic.executeOrLogVaultAction(runtime, lane,
             "Deleting submission " + comment.submissionId(),
             "Failed to delete submission " + comment.submissionId(),
