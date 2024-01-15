@@ -42,8 +42,13 @@ public class EBirdClient {
 
   private String makeApiCall(Supplier<HttpRequest> requestSupplier)
       throws EBirdApiException {
-    final HttpResponse<String> resp = HttpUtils.fireRequest(this.executor, requestSupplier.get(),
-        BodyHandlers.ofString(), 3);
+    final HttpResponse<String> resp;
+    try {
+      resp = HttpUtils.fireRequest(this.executor, requestSupplier.get(),
+          BodyHandlers.ofString(), 3);
+    } catch (Exception e) {
+      throw new EBirdApiException("Failed to make EBird API call", e);
+    }
     if (responseIsSuccessful(resp)) {
       return resp.body();
     } else {

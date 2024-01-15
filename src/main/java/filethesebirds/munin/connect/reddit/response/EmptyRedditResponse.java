@@ -12,10 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package filethesebirds.munin.swim;
+package filethesebirds.munin.connect.reddit.response;
 
-import swim.api.plane.AbstractPlane;
+import java.io.InputStream;
+import java.net.http.HttpResponse;
 
-public class MuninPlane extends AbstractPlane {
+public final class EmptyRedditResponse extends AbstractRedditResponse<Void> {
+
+  public EmptyRedditResponse(HttpResponse<InputStream> hr) {
+    super(hr);
+  }
+
+  @Override
+  protected Void decodeEssence(HttpResponse<InputStream> hr) {
+    return null;
+  }
 
 }

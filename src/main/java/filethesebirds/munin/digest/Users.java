@@ -14,7 +14,7 @@
 
 package filethesebirds.munin.digest;
 
-import filethesebirds.munin.util.ConfigUtils;
+import filethesebirds.munin.Utils;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -36,7 +36,7 @@ public final class Users {
   }
 
   private static void loadSet(Set<String> set, String name) {
-    try (InputStream is = ConfigUtils.openConfigFile(System.getProperty(name + ".conf"),
+    try (InputStream is = Utils.openConfigFile(System.getProperty(name + ".conf"),
             "/" + name + ".txt");
         InputStreamReader isr = new InputStreamReader(is);
         BufferedReader br = new BufferedReader(isr)) {
@@ -64,7 +64,8 @@ public final class Users {
   }
 
   public static boolean userIsAdmin(String user) {
-    return "tinylongwing".equals(user) || "great_horned_owl_".equals(user) || "brohitbrose".equals(user);
+    return "tinylongwing".equals(user) || "great_horned_owl_".equals(user)
+        || "bdporter".equals(user) || "brohitbrose".equals(user);
   }
 
   private static boolean isValidUsernameChar(char c) {

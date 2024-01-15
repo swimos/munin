@@ -24,13 +24,14 @@ final class RedditApi {
   }
 
   private static final String DOMAIN = "https://oauth.reddit.com";
+  private static final String SUBREDDIT = "/r/whatsthisbird";
 
   private static final String BEFORE_FMT = "&before=%s";
   private static final String AFTER_FMT = "&after=%s";
   private static final String ONE_LIMIT = "?limit=1";
   private static final String MAX_LIMIT = "?limit=100";
 
-  private static final String GET_UNDOCUMENTED_COMMENTS = "/r/whatsthisbird/comments";
+  private static final String GET_UNDOCUMENTED_COMMENTS = SUBREDDIT + "/comments";
   private static final String GET_ONE_UNDOCUMENTED_COMMENT = DOMAIN
       + GET_UNDOCUMENTED_COMMENTS + ONE_LIMIT;
   private static final String GET_MAX_UNDOCUMENTED_COMMENTS = DOMAIN
@@ -42,7 +43,7 @@ final class RedditApi {
   private static final String GET_UNDOCUMENTED_COMMENTS_AFTER_FMT = DOMAIN
       + GET_UNDOCUMENTED_COMMENTS + MAX_LIMIT + AFTER_FMT;
 
-  private static final String GET_UNDOCUMENTED_POSTS = "/r/whatsthisbird/new";
+  private static final String GET_UNDOCUMENTED_POSTS = SUBREDDIT + "/new";
   private static final String GET_ONE_UNDOCUMENTED_POST = DOMAIN
       + GET_UNDOCUMENTED_POSTS + ONE_LIMIT;
   private static final String GET_MAX_UNDOCUMENTED_POSTS = DOMAIN
@@ -56,11 +57,13 @@ final class RedditApi {
 
   private static final URI GET_IDENTITY_ME_URI = URI.create(DOMAIN + "/api/v1/me");
 
-  private static final String GET_READ_COMMENTS_ARTICLE_FMT = DOMAIN + "/r/whatsthisbird/comments/%s?threaded=false&sort=old";
+  private static final String GET_READ_COMMENTS_ARTICLE_FMT = DOMAIN + SUBREDDIT + "/comments/%s?threaded=false&sort=old";
+  private static final String GET_READ_BY_ID_FMT = DOMAIN + "/by_id/%s" + MAX_LIMIT;
 
   private static final URI POST_ANY_COMMENT_URI = URI.create(DOMAIN + "/api/comment");
 
   private static final URI POST_EDIT_EDITUSERTEXT_URI = URI.create(DOMAIN + "/api/editusertext");
+  private static final URI POST_EDIT_DEL_URI = URI.create(DOMAIN + "/api/del");
 
   private static HttpRequest.Builder baseRequestBuilder(URI uri, String token, String userAgent) {
     return HttpRequest.newBuilder(uri)
@@ -132,6 +135,10 @@ final class RedditApi {
     return get(URI.create(String.format(GET_READ_COMMENTS_ARTICLE_FMT, article)), token, userAgent);
   }
 
+  public static HttpRequest getReadById(String joinedIds, String token, String userAgent) {
+    return get(URI.create(String.format(GET_READ_BY_ID_FMT, joinedIds)), token, userAgent);
+  }
+
   // ANY scope
 
   public static HttpRequest postAnyComment(String parent, String body, String token, String userAgent) {
@@ -140,10 +147,17 @@ final class RedditApi {
     return post(POST_ANY_COMMENT_URI, HttpRequest.BodyPublishers.ofString(payload), token, userAgent);
   }
 
+  // EDIT scope
+
   public static HttpRequest postEditEditusertext(String id, String body, String token, String userAgent) {
     final String payload = String.format("api_type=json&thing_id=%s&text=%s",
         id, body);
     return post(POST_EDIT_EDITUSERTEXT_URI, HttpRequest.BodyPublishers.ofString(payload), token, userAgent);
+  }
+
+  public static HttpRequest postEditDel(String fullname, String token, String userAgent) {
+    final String payload = String.format("id=%s", fullname);
+    return post(POST_EDIT_DEL_URI, HttpRequest.BodyPublishers.ofString(payload), token, userAgent);
   }
 
 }

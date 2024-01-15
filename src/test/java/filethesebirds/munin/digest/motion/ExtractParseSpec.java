@@ -73,7 +73,7 @@ public class ExtractParseSpec {
         + "\\+Clay-colored        Sparrow+ behind that, and ++diurnal\traptor sp++ is the best we can do";
     final Extract extract = ExtractParse.parseComment(bareSuggestion(body));
     assertEquals(extract.vagueHints(), Set.of("hybrid%20yellow%20dark%20junco", "diurnal%20raptor%20sp"));
-    assertEquals(extract.hints(), Set.of("clay-colored%20sparrow"));
+    assertEquals(extract.hints(), Set.of("clay%20colored%20sparrow"));
   }
 
   @Test

@@ -17,7 +17,6 @@ open module filethesebirds.munin {
   requires transitive java.sql;
 
   requires swim.server;
-  requires transitive swim.adapter.http;
 
   requires org.commonmark;
   requires org.commonmark.ext.autolink;

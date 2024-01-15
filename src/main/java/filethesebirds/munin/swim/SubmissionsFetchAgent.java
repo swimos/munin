@@ -14,85 +14,50 @@
 
 package filethesebirds.munin.swim;
 
-import filethesebirds.munin.connect.http.HttpConnectException;
-import filethesebirds.munin.connect.reddit.RedditApiException;
-import filethesebirds.munin.connect.reddit.RedditResponse;
-import filethesebirds.munin.connect.vault.VaultClient;
-import filethesebirds.munin.digest.Submission;
-import swim.adapter.common.RelayException;
-import swim.adapter.common.ingress.IngestingAgent;
 import swim.api.SwimLane;
+import swim.api.agent.AbstractAgent;
 import swim.api.lane.CommandLane;
-import swim.api.ref.WarpRef;
+import swim.concurrent.TimerRef;
 import swim.structure.Value;
 
 /**
- * A Web Agent that periodically fetches new submissions to r/WhatsThisBird,
- * but may be preemptively triggered to execute outside its usual schedule.
+ * A singleton Web Agent that fetches new submissions to r/WhatsThisBird and
+ * routes the resulting information for processing by appropriate {@link
+ * SubmissionAgent SubmissionAgents}.
+ *
+ * <p>The {@code SubmissionsFetchAgent} is liable for the following {@link
+ * LiveSubmissions} actions:
+ * <ul>
+ * <li>Inserting up-to-date information about all active submissions
+ * <li>Shelving submitter-deleted and moderator-removed submissions that have
+ * received no comments since their disappearance
+ * </ul>
+ * and the following vault actions:
+ * <ul>
+ * <li>Upserting the latest info about all active live submissions
+ * <li>Deleting each submission (cascaded to its observations) that moves to the
+ * {@code shelved} status from {@code active}
+ * </ul>
  */
-public class SubmissionsFetchAgent extends IngestingAgent<RedditResponse<Submission[]>> {
+public class SubmissionsFetchAgent extends AbstractAgent {
 
-  private volatile String latestFetched = null;
+  protected TimerRef fetchTimer;
 
-  @SwimLane("preemptFetch")
-  CommandLane<Value> preemptFetch = this.<Value>commandLane()
-      .onCommand(v -> {
-        if (v.isDistinct()) {
-          prepareForReception();
-        }
-      });
-
-  @Override
-  public RedditResponse<Submission[]> fetch() throws RelayException {
-    try {
-      return Shared.redditClient().fetchMaxUndocumentedPosts();
-    } catch (RedditApiException | HttpConnectException e) {
-      throw new RelayException("Failed to fetch", e, false);
-    }
+  protected TimerRef fetchTimer() {
+    return this.fetchTimer;
   }
 
-  @Override
-  public void prepareForReception() {
-    System.out.println(nodeUri() + ": fetch reset");
-    cancelPeriodicDuty(null);
-    schedulePeriodicDuty(this::fetchThenRelay, 3000L, 180000L);
-  }
+  @SwimLane("preemptSubmissionsFetch")
+  protected CommandLane<Value> preemptSubmissionsFetch = this.<Value>commandLane()
+      .onCommand(this::preemptSubmissionsFetchOnCommand);
 
-  @Override
-  public void relayReceiptToSwim(WarpRef warpRef, RedditResponse<Submission[]> r)
-      throws RelayException {
-    final Submission[] submissions;
-    try {
-      submissions = r.essence();
-    } catch (Throwable e) {
-      throw new RelayException("Failed to relay", e, false);
-    }
-    if (submissions == null || submissions.length == 0) {
-      return;
-    }
-    final Submission first = submissions[0];
-    if (!first.id().equals(latestFetched)) {
-      latestFetched = first.id();
-    }
-    final long now = System.currentTimeMillis();
-    for (Submission submission : submissions) {
-      if (now - submission.createdUtc() * 1000L <= MuninConstants.lookbackMillis()) {
-        command("/submission/" + submission.id(), "info",
-            Submission.form().mold(submission).toValue());
-      }
-    }
-    // Can safely do this because we're already in an asyncStage block
-    try {
-      Shared.vaultClient().upsertSubmissions(submissions);
-    } catch (Exception e) {
-      new Exception(nodeUri() + ": failed to upsert", e).printStackTrace();
-      VaultClient.DRY.upsertSubmissions(submissions);
-    }
+  protected void preemptSubmissionsFetchOnCommand(Value v) {
+    SubmissionsFetchAgentLogic.preemptSubmissionsFetchOnCommand(this, v);
   }
 
   @Override
   public void didStart() {
-    System.out.println(nodeUri() + ": didStart " + this.getClass());
+    Logic.info(this, "didStart()", "");
   }
 
 }

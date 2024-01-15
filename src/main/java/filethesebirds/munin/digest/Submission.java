@@ -18,10 +18,8 @@ import filethesebirds.munin.connect.reddit.RedditResponse;
 import filethesebirds.munin.connect.reddit.response.NominalRedditResponse;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
-import java.util.Map;
+import java.util.Locale;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import swim.recon.Recon;
 import swim.structure.Attr;
 import swim.structure.Form;
@@ -34,17 +32,19 @@ public class Submission {
 
   private final String id;
   private final String title;
-  private final Location location;
+  private final String author;
+  private final String flair;
   final String thumbnail;
   private final long createdUtc;
   private final int karma;
   private final int commentCount;
 
-  public Submission(String id, String title, Location location, String thumbnail,
-                    long createdUtc, int karma, int commentCount) {
+  public Submission(String id, String title, String author, String flair,
+                    String thumbnail, long createdUtc, int karma, int commentCount) {
     this.id = id;
     this.title = title;
-    this.location = location;
+    this.author = author;
+    this.flair = flair;
     this.thumbnail = thumbnail;
     this.createdUtc = createdUtc;
     this.karma = karma;
@@ -59,8 +59,12 @@ public class Submission {
     return this.title;
   }
 
-  public Location location() {
-    return this.location;
+  public String author() {
+    return this.author;
+  }
+
+  public String flair() {
+    return this.flair;
   }
 
   public String thumbnail() {
@@ -87,7 +91,7 @@ public class Submission {
    * @return  a RedditResponse with minimal {@code essence()}
    */
   public static RedditResponse<Submission[]> submissionsFetchCrux(HttpResponse<InputStream> hr) {
-    return new SubmissionRedditResponse(hr);
+    return new SubmissionsRedditResponse(hr);
   }
 
   private static Form<Submission> form;
@@ -105,67 +109,13 @@ public class Submission {
     return Recon.toString(form().mold(this));
   }
 
-//  @Override
-//  public boolean equals(Object o) {
-//    if (this == o) return true;
-//    if (o == null || getClass() != o.getClass()) return false;
-//    Submission that = (Submission) o;
-//    return createdUtc == that.createdUtc && karma == that.karma && commentCount == that.commentCount && id.equals(that.id) && title.equals(that.title) && location == that.location && thumbnail.equals(that.thumbnail);
-//  }
-//
-//  @Override
-//  public int hashCode() {
-//    return Objects.hash(id, title, location, thumbnail, createdUtc, karma, commentCount);
-//  }
-
-  public enum Location {
-
-    NORTH_AMERICA("north america"),
-    LATIN_AMERICA("latin america"),
-    EUROPE("europe"),
-    AFRICA("africa"),
-    WESTERN_ASIA("western asia"),
-    SOUTH_ASIA("south asia"),
-    SOUTHEAST_ASIA("southeast asia"),
-    EAST_ASIA("east asia"),
-    AUSTRALIA_NZ("australia/nz"),
-    CENTRAL_ASIA("central asia"),
-    PACIFIC_ISLANDS("pacific islands"),
-    MIDDLE_EAST("middle east"),
-    CARIBBEAN_ISLANDS("caribbean islands"),
-    PRIVATE_COLLECTION("private collection"),
-    UNKNOWN("unknown");
-
-    private static final Map<String, Location> LOOKUP = Stream.of(Location.values())
-        .collect(Collectors.toUnmodifiableMap(Location::text, Function.identity()));
-
-    private final String text;
-
-    Location(String text) {
-      this.text = text;
-    }
-
-    public String text() {
-      return this.text;
-    }
-
-    public static Location fromText(String text) {
-      final Location result = LOOKUP.get(text);
-      if (result == null) {
-        throw new IllegalArgumentException("No Location corresponding to text " + text);
-      }
-      return result;
-    }
-
-  }
-
-  private static class SubmissionRedditResponse
+  private static class SubmissionsRedditResponse
       extends NominalRedditResponse<Submission[]> {
 
     private static <V> V extractField(Value data, Value essence, String key, Function<Value, V> extractor) {
       try {
         return extractor.apply(data.get(key));
-      } catch (Throwable e) {
+      } catch (Exception e) {
         throw new RuntimeException("Failed to extract " + key + ". Essence dump: "
             + essence, e);
       }
@@ -180,23 +130,24 @@ public class Submission {
         final Value data = child.get("data");
         final String id = extractField(data, essence, "id", Value::stringValue);
         final String title = extractField(data, essence, "title", Value::stringValue);
-        Location location;
-        try {
-          location = Location.fromText(data.get("link_flair_text").stringValue().toLowerCase());
-        } catch (Throwable e) {
-          location = Location.UNKNOWN;
-        }
+        final String author = extractField(data, essence, "author", Value::stringValue)
+            .toLowerCase(Locale.ROOT);
+        final String flair = extractField(data, essence, "link_flair_text",
+            v -> {
+              final String lower = v.stringValue(null);
+              return lower != null ? lower.toLowerCase(Locale.ROOT) : null;
+            });
         final String thumbnail = extractField(data, essence, "thumbnail", Value::stringValue);
         final long createdUtc = extractField(data, essence, "created_utc", Value::longValue);
         final int karma = extractField(data, essence, "score", Value::intValue);
         final int commentCount = extractField(data, essence, "num_comments", Value::intValue);
-        res[i] = new Submission(id, title, location, thumbnail, createdUtc, karma, commentCount);
+        res[i] = new Submission(id, title, author, flair, thumbnail, createdUtc, karma, commentCount);
         i++;
       }
       return res;
     }
 
-    private SubmissionRedditResponse(HttpResponse<InputStream> hr) {
+    private SubmissionsRedditResponse(HttpResponse<InputStream> hr) {
       super(hr);
     }
 
@@ -219,10 +170,11 @@ public class Submission {
       if (s == null) {
         return Value.extant();
       }
-      return Record.create(8).attr(tag())
+      return Record.create(9).attr(tag())
           .slot("id", s.id())
           .slot("title", s.title())
-          .slot("location", s.location().text())
+          .slot("author", s.author())
+          .slot("flair", s.flair())
           .slot("thumbnail", s.thumbnail())
           .slot("createdUtc", s.createdUtc())
           .slot("karma", s.karma())
@@ -238,7 +190,8 @@ public class Submission {
         }
         return new Submission(item.get("id").stringValue(),
             item.get("title").stringValue(),
-            Location.fromText(item.get("location").stringValue("unknown")),
+            item.get("author").stringValue(),
+            item.get("flair").stringValue(null),
             item.get("thumbnail").stringValue(),
             item.get("createdUtc").longValue(),
             item.get("karma").intValue(1),

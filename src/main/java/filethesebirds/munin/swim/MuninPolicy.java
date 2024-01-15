@@ -14,26 +14,17 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.Utils;
 import swim.api.auth.Identity;
-import swim.api.downlink.MapDownlink;
-import swim.api.plane.PlaneContext;
 import swim.api.policy.AbstractPolicy;
 import swim.api.policy.PolicyDirective;
-import swim.structure.Form;
-import swim.structure.Value;
+import swim.uri.Uri;
 import swim.warp.CommandMessage;
 import swim.warp.Envelope;
 
 public class MuninPolicy extends AbstractPolicy {
 
-  private final MapDownlink<String, Value> downlink;
-
-  public MuninPolicy(PlaneContext plane) {
-    this.downlink = plane.downlinkMap()
-        .keyForm(Form.forString())
-        .nodeUri("/submissions").laneUri("statuses")
-        .keepSynced(true)
-        .open();
+  public MuninPolicy() {
   }
 
   @Override
@@ -42,14 +33,42 @@ public class MuninPolicy extends AbstractPolicy {
     if (envelope instanceof CommandMessage) {
       return forbid();
     }
+    final Uri nodeUri = envelope.nodeUri();
+    if (nodeUri == null) {
+      return super.authorize(envelope, identity);
+    }
     // no creating new dynamic agents
-    final String envelopeNodeUri = envelope.nodeUri().toString();
-    if (envelopeNodeUri.contains("submission/")) {
-      if (!this.downlink.containsKey(envelopeNodeUri)) {
+    final String nodeStr = nodeUri.toString();
+    if (nodeStr != null && (nodeStr.startsWith("/submission/") || nodeStr.startsWith("submission/"))) {
+      final long id10 = extractSubmissionId10(envelope.nodeUri().toString());
+      if (id10 < 0L || Shared.liveSubmissions().getActive(id10) == null) {
         return forbid();
       }
     }
     return super.authorize(envelope, identity);
+  }
+
+  static long extractSubmissionId10(String nodeUri) {
+    if (nodeUri == null || nodeUri.isEmpty()) {
+      return -1L;
+    }
+    for (int i = 0; i < nodeUri.length(); i++) {
+      final char c = nodeUri.charAt(i);
+      if (!(('/' == c) || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9'))) {
+        return -1L;
+      }
+    }
+    final String indicator = "submission/";
+    final int i = nodeUri.indexOf(indicator) + indicator.length();
+    if (i < indicator.length()) {
+      return -1L;
+    } else {
+      try {
+        return Utils.id36To10(nodeUri.substring(i));
+      } catch (Exception e) {
+        return -1L;
+      }
+    }
   }
 
 }

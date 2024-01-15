@@ -1,23 +1,19 @@
+@kernel(class: 'filethesebirds.munin.swim.MuninLogKernel', level: 'debug')
+
 munin: @fabric {
-  @plane(class: "filethesebirds.munin.swim.MuninPlane")
-  # Singletons
-  @node {
-    uri: "/commentsFetch"
-    @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")
-  }
-  @node {
-    uri: "/submissionsFetch"
-    @agent(class: "filethesebirds.munin.swim.SubmissionsFetchAgent")
-  }
-  @node {
-    uri: "/throttledPublish"
-    @agent(class: "filethesebirds.munin.swim.ThrottledPublishingAgent")
-  }
+  # Default plane is sufficient, but ensure to configure policy in code
+  @plane(class: "swim.api.plane.AbstractPlane")
+
+  # Singleton Web Agent with multiple traits
   @node {
     uri: "/submissions"
     @agent(class: "filethesebirds.munin.swim.SubmissionsAgent")
+    @agent(class: "filethesebirds.munin.swim.SubmissionsFetchAgent")
+    @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")
+    @agent(class: "filethesebirds.munin.swim.PublishingAgent")
   }
-  # Dynamics
+
+  # Dynamically instantiable Web Agent type with single trait
   @node {
     pattern: "/submission/:id"
     @agent(class: "filethesebirds.munin.swim.SubmissionAgent")

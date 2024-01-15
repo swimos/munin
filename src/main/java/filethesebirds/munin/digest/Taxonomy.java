@@ -14,7 +14,7 @@
 
 package filethesebirds.munin.digest;
 
-import filethesebirds.munin.util.ConfigUtils;
+import filethesebirds.munin.Utils;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -25,7 +25,7 @@ public final class Taxonomy {
 
   private static final Map<String, String[]> TAXONOMY = new HashMap<>(32000);
   static {
-    try (InputStream is = ConfigUtils.openConfigFile(System.getProperty("taxonomy.conf"),
+    try (InputStream is = Utils.openConfigFile(System.getProperty("taxonomy.conf"),
             "/ebird-taxa.csv");
         InputStreamReader isr = new InputStreamReader(is);
         BufferedReader br = new BufferedReader(isr)) {

@@ -12,30 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package filethesebirds.munin.util;
+package filethesebirds.munin;
 
-import filethesebirds.munin.Main;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.function.Function;
 
-public final class ConfigUtils {
+public final class Utils {
 
-  private ConfigUtils() {
+  private Utils() {
   }
 
   public static InputStream openConfigFile(String diskPath, String resourcePath) {
     if (diskPath == null || diskPath.isEmpty()) {
-      System.out.println("Will load resource at " + resourcePath);
+      System.out.println("[INFO] Will load resource at " + resourcePath);
       return Main.class.getResourceAsStream(resourcePath);
     }
     try {
-      System.out.println("Will load file at " + diskPath);
+      System.out.println("[INFO] Will load file at " + diskPath);
       return new FileInputStream(diskPath);
     } catch (IOException e) {
-      System.out.println("Will load resource at " + resourcePath);
+      System.out.println("[INFO] Will load resource at " + resourcePath);
       return Main.class.getResourceAsStream(resourcePath);
     }
   }
@@ -48,6 +47,18 @@ public final class ConfigUtils {
       throw new RuntimeException("Failed to load from stream", e);
     }
     return generator.apply(props);
+  }
+
+  // ===========================================================================
+  // Miscellaneous
+  // ===========================================================================
+
+  public static String id10To36(long id10) {
+    return Long.toString(id10, 36);
+  }
+
+  public static long id36To10(String id36) {
+    return Long.parseLong(id36, 36);
   }
 
 }

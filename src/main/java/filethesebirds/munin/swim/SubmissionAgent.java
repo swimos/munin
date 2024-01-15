@@ -14,144 +14,82 @@
 
 package filethesebirds.munin.swim;
 
+import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Forms;
 import filethesebirds.munin.digest.Motion;
 import filethesebirds.munin.digest.Submission;
-import filethesebirds.munin.digest.Users;
-import filethesebirds.munin.digest.answer.Answers;
-import filethesebirds.munin.digest.motion.Extract;
-import filethesebirds.munin.digest.motion.ExtractParse;
-import filethesebirds.munin.swim.task.PhasedPurifyTask;
 import java.util.List;
-import java.util.Map;
 import swim.api.SwimLane;
 import swim.api.agent.AbstractAgent;
 import swim.api.lane.CommandLane;
 import swim.api.lane.MapLane;
 import swim.api.lane.ValueLane;
-import swim.concurrent.AbstractTask;
 import swim.structure.Form;
-import swim.structure.Record;
-import swim.structure.Text;
+import swim.structure.Num;
 import swim.structure.Value;
 
+/**
+ * A dynamically instantiable Web Agent that serves as the intelligent, informed
+ * digital twin of an r/WhatsThisBird submission.
+ *
+ * <p>Each {@code SubmissionAgent} is liable for the following {@link
+ * LiveSubmissions} action:
+ * <ul>
+ * <li>Shelving the submission upon encountering a properly issued {@code !rm}
+ * comment or a comment whose submission author is {@code [deleted]}
+ * </ul>
+ * and the following vault actions:
+ * <ul>
+ * <li>Assigning observations based on updates to {@link #answer}
+ * <li>Deleting the corresponded submission (cascaded to its observations) upon
+ * encountering an aforementioned shelve-capable comment
+ * </ul>
+ */
 public class SubmissionAgent extends AbstractAgent {
-
-  // Stateful lanes
 
   @SwimLane("info")
   ValueLane<Submission> info = valueLane()
       .valueForm(Submission.form())
-      .didSet((n, o) -> {
-        final Answer ans = this.answer.get();
-        this.status.set(merge(n, ans));
-        if ((o == null || o.id() == null || o.id().isEmpty())
-            && (ans != null && !ans.taxa().isEmpty())) {
-          asyncStage().task(new AbstractTask() {
-
-            @Override
-            public void runTask() {
-              Shared.vaultClient().assignObservations(getProp("id").stringValue(), ans);
-            }
-
-            @Override
-            public boolean taskWillBlock() {
-              return true;
-            }
-
-          }).cue();
-        }
-      });
+      .didSet(this::infoDidSet);
 
   @SwimLane("answer")
   ValueLane<Answer> answer = valueLane()
       .valueForm(Forms.forAnswer())
-      .didSet((n, o) -> {
-        System.out.println(nodeUri() + ": updated answer to " + n);
-        this.status.set(merge(this.info.get(), n));
-        asyncStage().task(new AbstractTask() {
-
-          @Override
-          public void runTask() {
-            Shared.vaultClient().assignObservations(getProp("id").stringValue(), n);
-          }
-
-          @Override
-          public boolean taskWillBlock() {
-            return true;
-          }
-
-        }).cue();
-      });
+      .didSet(this::answerDidSet);
 
   @SwimLane("status")
-  ValueLane<Value> status = this.<Value>valueLane();
+  ValueLane<Value> status = this.<Value>valueLane()
+      .didSet(this::statusDidSet);
 
   @SwimLane("motions")
   MapLane<Value, Motion> motions = mapLane()
       .keyForm(Form.forValue())
       .valueForm(Forms.forMotion())
-      .didUpdate((k, n, o) -> {
-        final Answer answer = Answers.mutable();
-        for (Map.Entry<Value, Motion> entry : this.motions.entrySet()) {
-          if (answer.motionIsSignificant(entry.getValue())) {
-            answer.apply(entry.getValue());
-          }
-        }
-        final Answer current = this.answer.get();
-        if (current == null) {
-          if (!answer.taxa().isEmpty()) {
-            this.answer.set(answer);
-          }
-        } else if (!answer.taxa().isEmpty()) { // if taxa present in new answer
-          // change the established answer if the taxa or the reviewers are different
-          if (!current.taxa().equals(answer.taxa())
-              || !current.reviewers().equals(answer.reviewers())) {
-            this.answer.set(answer);
-          }
-        }
-      });
+      .didUpdate(this::motionsDidUpdate);
 
-  // Stateless lanes
-
+  /**
+   * A command-type endpoint that triggers closing this {@code SubmissionAgent}
+   * and clearing its lanes.
+   */
   @SwimLane("expire")
   CommandLane<Value> expire = this.<Value>commandLane()
-      .onCommand(v -> {
-        if (v.isDistinct()) {
-          expireJoins();
-          clearLanes();
-        }
-      });
+      .onCommand(this::expireOnCommand);
 
-  @SwimLane("remove")
-  CommandLane<Value> remove = this.<Value>commandLane()
-      .onCommand(v -> {
-        if (v.isDistinct()) {
-          removeJoins();
-          clearLanes();
-          // TODO: consider moving the logic from ThrottledPublishingAgent into here
-//          asyncStage().task(new AbstractTask() {
-//
-//            @Override
-//            public void runTask() {
-//              Shared.vaultClient().deleteSubmission(getProp("id").stringValue());
-//            }
-//
-//            @Override
-//            public boolean taskWillBlock() {
-//              return true;
-//            }
-//
-//          }).cue();
-        }
-      });
+  /**
+   * A command-type endpoint that triggers closing this {@code SubmissionAgent},
+   * clearing its lanes, and removing all traces of its underlying submission
+   * from vault.
+   */
+  @SwimLane("shelve")
+  CommandLane<Value> shelve = this.<Value>commandLane()
+      .onCommand(this::shelveOnCommand);
 
   @SwimLane("addNewComment")
   CommandLane<Comment> addNewComment = commandLane()
       .valueForm(Comment.form())
-      .onCommand(this::onNewComment);
+      .onCommand(c -> onNewComment(c, "addNewComment"));
 
   @SwimLane("addManyComments")
   CommandLane<List<Comment>> addManyComments = commandLane()
@@ -159,89 +97,56 @@ public class SubmissionAgent extends AbstractAgent {
       .onCommand(comments -> {
         if (comments != null && !comments.isEmpty()) {
           for (int i = comments.size() - 1; i >= 0; i--) {
-            onNewComment(comments.get(i));
+            onNewComment(comments.get(i), "addManyComments");
           }
         }
       });
 
-  // Agent lifecycle
+  // Callback logic
+
+  protected void infoDidSet(Submission n, Submission o) {
+    SubmissionAgentLogic.infoDidSet(this, n, o);
+  }
+
+  protected void answerDidSet(Answer n, Answer o) {
+    SubmissionAgentLogic.answerDidSet(this, n, o);
+  }
+
+  protected void statusDidSet(Value n, Value o) {
+    // stub
+  }
+
+  protected void expireOnCommand(Value v) {
+    SubmissionAgentLogic.expireOnCommand(this, v);
+  }
+
+  protected void shelveOnCommand(Value v) {
+    SubmissionAgentLogic.shelveOnCommand(this, v);
+  }
+
+  protected void onNewComment(Comment comment, String lane) {
+    SubmissionAgentLogic.onNewComment(this, lane, comment);
+  }
+
+  protected void motionsDidUpdate(Value k, Motion n, Motion o) {
+    SubmissionAgentLogic.motionsDidUpdate(this);
+  }
 
   @Override
   public void didStart() {
-    System.out.println(nodeUri() + ": didStart");
-    initiateJoins();
-  }
-
-  // Callback logic
-
-  private void onNewComment(Comment comment) {
-    System.out.println(nodeUri() + ": processed comment from " + comment.author());
-    if (Users.userIsPublisher(comment.author())) {
-      command("/throttledPublish", "addPublisherComment",
-          Comment.form().mold(comment).toValue());
-      return;
+    Logic.info(this, "didStart()", "");
+    try {
+      final Num id10 =  Num.from(Utils.id36To10(getProp("id").stringValue(null)));
+      command("/submissions", "subscribe", id10);
+    } catch (Exception e) {
+      didFail(e);
+      close();
     }
-    // taxa
-    final Extract extract = ExtractParse.parseComment(comment);
-    if (extract.isEmpty()) {
-      return;
-    }
-    if (!extract.hints().isEmpty() || !extract.vagueHints().isEmpty()) {
-      final PhasedPurifyTask action = new PhasedPurifyTask(this,
-          comment, extract, this.motions);
-      if (!action.cue()) {
-        System.out.println(nodeUri() + ": failed to cue task for comment " + comment);
-      }
-      return;
-    }
-    final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
-    System.out.println(nodeUri() + ": will put " + laneKey + ", " + extract.base());
-    this.motions.put(laneKey, extract.base());
   }
 
-  private void initiateJoins() {
-    command("/submissions", "subscribe", Text.from(nodeUri().toString()));
-    command("/throttledPublish", "subscribe", Text.from(nodeUri().toString()));
-    command("/commentsFetch", "addLiveSubmission", getProp("id"));
-  }
-
-  private void removeJoins() {
-    command("/submissions", "unsubscribe", Text.from(nodeUri().toString()));
-    command("/throttledPublish", "removeSubmission", Text.from(nodeUri().toString()));
-  }
-
-  private void expireJoins() {
-    command("/submissions", "unsubscribe", Text.from(nodeUri().toString()));
-    command("/throttledPublish", "expireSubmission", Text.from(nodeUri().toString()));
-  }
-
-  private void clearLanes() {
-    this.motions.clear();
-    this.status.set(Value.absent());
-    this.answer.set(null);
-    this.info.set(null);
-  }
-
-  private static Value merge(Submission s, Answer a) {
-    if (s == null || s.id() == null || s.id().isEmpty()) {
-      return Value.extant();
-    }
-    final Record r = Record.create(12).attr("status")
-        // info
-        .slot("id", s.id())
-        .slot("title", s.title())
-        .slot("location", s.location().text())
-        .slot("thumbnail", s.thumbnail())
-        .slot("createdUtc", s.createdUtc())
-        .slot("karma", s.karma())
-        .slot("commentCount", s.commentCount());
-    if (a == null || a.taxa().isEmpty()) {
-      return r.slot("taxa", Value.extant()).slot("reviewers", Value.extant());
-    } else {
-      return r.slot("taxa", Forms.forSetString().mold(a.taxa()).toValue())
-          .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
-              : Forms.forSetString().mold(a.reviewers()).toValue());
-    }
+  @Override
+  public void willClose() {
+    Logic.info(this, "willClose()", "");
   }
 
 }

@@ -15,6 +15,7 @@
 package filethesebirds.munin.connect.reddit;
 
 import filethesebirds.munin.connect.http.HttpUtils;
+import filethesebirds.munin.connect.http.StatusCodeException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -30,55 +31,64 @@ public class RedditPasswordGrantProvider {
 
   private static final URI AUTH_ENDPOINT = URI.create("https://www.reddit.com/api/v1/access_token");
   private static final String POST_DATA_FMT = "grant_type=password&username=%s&password=%s";
-  private static final long TOKEN_FETCH_TIMEOUT_MILLIS = 6000L;
+  private static final long TOKEN_FETCH_TIMEOUT_MILLIS = 12000L;
 
-  private final RedditCredentials credentials;
-
+  private final String userAgent;
+  private final HttpRequest tokenFetchRequest;
   private volatile String currentToken;
   private volatile long currentExpiry;
 
   public RedditPasswordGrantProvider(RedditCredentials credentials) {
-    this.credentials = credentials;
+    this.userAgent = credentials.userAgent();
+    this.tokenFetchRequest = defaultTokenFetchRequest(credentials);
     this.currentToken = null;
     this.currentExpiry = -1L;
   }
 
-  protected HttpRequest buildTokenFetchRequest() {
+  private static HttpRequest defaultTokenFetchRequest(RedditCredentials credentials) {
     return HttpRequest.newBuilder(AUTH_ENDPOINT)
         .POST(HttpRequest.BodyPublishers.ofString(String.format(POST_DATA_FMT,
-            this.credentials.user(), this.credentials.pass())))
+            credentials.user(), credentials.pass())))
         .header("Authorization","Basic " + Base64.getEncoder()
-            .encodeToString((this.credentials.clientId() + ":" + this.credentials.clientSecret())
+            .encodeToString((credentials.clientId() + ":" + credentials.clientSecret())
                 .getBytes(StandardCharsets.UTF_8)))
-        .header("User-Agent", this.credentials.userAgent())
+        .header("User-Agent", credentials.userAgent())
         .timeout(Duration.ofMillis(TOKEN_FETCH_TIMEOUT_MILLIS))
         .build();
   }
 
-  protected void fetchNewToken(HttpClient executor) throws RedditApiException {
-    final HttpResponse<String> resp;
+  protected void fetchNewToken(HttpClient executor) throws StatusCodeException {
+    final long beforeFire = System.currentTimeMillis();
+    final HttpResponse<String> resp = fireTokenRequest(executor);
     try {
-      resp = HttpUtils.fireRequest(executor,
-          buildTokenFetchRequest(), BodyHandlers.ofString(), 3);
-    } catch (Exception e) {
-      throw new RedditApiException("Failed to fetch token", e);
+      updateToken(resp, beforeFire);
+    } catch (RuntimeException e) {
+      System.out.println("[ERROR] could not ");
+      throw e;
     }
-    if (resp.statusCode() / 100 != 2) {
-      throw new RedditApiException("Bad token response status code " + resp.statusCode()
-          + ". Headers: " + resp.headers());
+  }
+
+  private HttpResponse<String> fireTokenRequest(HttpClient executor) throws StatusCodeException {
+    final HttpResponse<String> result = HttpUtils.fireRequest(executor, this.tokenFetchRequest, BodyHandlers.ofString(), 1);
+    if (result.statusCode() / 100 != 2) {
+      throw new StatusCodeException(result.statusCode(), result.headers().toString());
     }
-    final Value bodyVal;
-    String body = null;
-    try {
-      body = resp.body();
-      bodyVal = Json.parse(body);
-      this.currentToken = bodyVal.get("access_token").stringValue();
-      this.currentExpiry = System.currentTimeMillis() - 2 * TOKEN_FETCH_TIMEOUT_MILLIS
-          + bodyVal.get("expires_in").longValue(3600L) * 1000;
-    } catch (Throwable e) {
-      throw new RedditApiException("Failed to extract token from body="
-          + (body == null ? "(null)" : " " + body));
-    }
+    return result;
+  }
+
+  private void updateToken(HttpResponse<String> tokenFetchResponse, long beforeFire) {
+    final String body = tokenFetchResponse.body();
+    final Value bodyVal = Json.parse(body);
+    final String accessToken = bodyVal.get("access_token").stringValue();
+    final long expiresIn = bodyVal.get("expires_in").longValue(3600L);
+    this.currentToken = accessToken;
+    this.currentExpiry = beforeFire - TOKEN_FETCH_TIMEOUT_MILLIS + expiresIn * 1000;
+    System.out.println("[INFO] token expiry updated to " + this.currentExpiry + " (from payload="
+        + Json.toString(bodyVal.updatedSlot("access_token", "[REDACTED]")) + ")");
+  }
+
+  public String userAgent() {
+    return this.userAgent;
   }
 
   public String currentToken() {
@@ -87,10 +97,6 @@ public class RedditPasswordGrantProvider {
 
   public long currentExpiry() {
     return this.currentExpiry;
-  }
-
-  public String userAgent() {
-    return this.credentials.userAgent();
   }
 
 }

@@ -16,10 +16,6 @@ package filethesebirds.munin.connect.http;
 
 public class HttpConnectException extends RuntimeException {
 
-  public HttpConnectException(String msg) {
-    super(msg);
-  }
-
   public HttpConnectException(String msg, Throwable cause) {
     super(msg, cause);
   }

@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.connect.vault;
 
+import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.digest.Taxonomy;
@@ -26,7 +27,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.stream.Collectors;
 
 final class VaultApi {
 
@@ -45,7 +48,7 @@ final class VaultApi {
     return new Timestamp(epoch * 1000);
   }
 
-  private static final String UPSERT_SUBMISSIONS_PREFIX = "INSERT into submissions VALUES";
+  private static final String UPSERT_SUBMISSIONS_PREFIX = "INSERT INTO submissions VALUES";
   private static final String UPSERT_SUBMISSIONS_SUFFIX = " ON CONFLICT (submission_id) DO UPDATE SET"
       + " location = EXCLUDED.location,"
       + " upload_date = EXCLUDED.upload_date,"
@@ -53,47 +56,60 @@ final class VaultApi {
       + " comment_count = EXCLUDED.comment_count,"
       + " title = EXCLUDED.title;";
 
-  static PreparedStatement upsertSubmissions(Connection conn, Submission[] submissions)
+  static PreparedStatement upsertSubmissions(Connection conn, Collection<Submission> submissions)
       throws SQLException {
-    if (submissions == null || submissions.length == 0) {
+    if (submissions == null || submissions.isEmpty()) {
       return null;
     }
-    final String template = UPSERT_SUBMISSIONS_PREFIX
-        + " (?, ?, ?, ?, ?, ?, ?)"
-        + UPSERT_SUBMISSIONS_SUFFIX;
+//    final String template = UPSERT_SUBMISSIONS_PREFIX
+//        + " (?, ?, ?, ?, ?, ?, ?)"
+//        + UPSERT_SUBMISSIONS_SUFFIX;
+//    final PreparedStatement st = conn.prepareStatement(template);
+//    for (Submission submission : submissions) {
+//      st.setLong(1, Utils.id36To10(submission.id()));
+//      st.setObject(2, "unknown", Types.OTHER);
+//      st.setTimestamp(3, epochSecondsToTimestamp(submission.createdUtc()));
+//      st.setInt(4, submission.karma());
+//      st.setInt(5, submission.commentCount());
+//      st.setString(6, submission.title());
+//      st.setObject(7, "unanswered", Types.OTHER); // status
+//      st.addBatch();
+//    }
+//    return st;
+    final String questions = "(?, ?, ?, ?, ?, ?, ?)";
+    final String template = UPSERT_SUBMISSIONS_PREFIX + " "
+            + submissions.stream().map(s -> questions).collect(Collectors.joining(", "))
+            + UPSERT_SUBMISSIONS_SUFFIX;
     final PreparedStatement st = conn.prepareStatement(template);
-    for (Submission submission : submissions) {
-      st.setLong(1, Long.parseLong(submission.id(), 36));
-      st.setObject(2, submission.location().text(), Types.OTHER);
-      st.setTimestamp(3, epochSecondsToTimestamp(submission.createdUtc()));
-      st.setInt(4, submission.karma());
-      st.setInt(5, submission.commentCount());
-      st.setString(6, submission.title());
-      st.setObject(7, "unanswered", Types.OTHER); // status
-      st.addBatch();
+    final Iterator<Submission> itr = submissions.iterator();
+    for (int i = 0; itr.hasNext(); i++) {
+      final Submission submission = itr.next();
+      final int base = 7 * i;
+      st.setLong(base + 1, Utils.id36To10(submission.id()));
+      st.setObject(base + 2, "unknown", Types.OTHER);
+      st.setTimestamp(base + 3, epochSecondsToTimestamp(submission.createdUtc()));
+      st.setInt(base + 4, submission.karma());
+      st.setInt(base + 5, submission.commentCount());
+      st.setString(base + 6, submission.title());
+      st.setObject(base + 7, "unanswered", Types.OTHER); // status
     }
     return st;
   }
 
-  static String upsertSubmissionsQuery(Submission[] submissions) {
-    if (submissions == null || submissions.length == 0) {
+  static String upsertSubmissionsQuery(Collection<Submission> submissions) {
+    if (submissions == null || submissions.isEmpty()) {
       return null;
     }
-    final String repeatFmt = " (%d, '%s', '%s', %d, %d, '%s', 'unanswered')";
-    final StringBuilder sb = new StringBuilder(512);
-    sb.append(UPSERT_SUBMISSIONS_PREFIX);
-    sb.append(formatRepeatUpsertSubmission(repeatFmt, submissions[0]));
-    for (int i = 1; i < submissions.length; i++) {
-      sb.append(formatRepeatUpsertSubmission("," + repeatFmt, submissions[i]));
-    }
-    sb.append(UPSERT_SUBMISSIONS_SUFFIX);
-    return sb.toString();
+    return UPSERT_SUBMISSIONS_PREFIX + " "
+        + submissions.stream().map(VaultApi::formatRepeatUpsertSubmission)
+            .collect(Collectors.joining(" "))
+        + UPSERT_SUBMISSIONS_SUFFIX;
   }
 
-  private static String formatRepeatUpsertSubmission(String fmt, Submission submission) {
-    return String.format(fmt,
-        Long.parseLong(submission.id(), 36),
-        submission.location().text(),
+  private static String formatRepeatUpsertSubmission(Submission submission) {
+    return String.format("(%d, '%s', '%s', %d, %d, '%s', 'unanswered')",
+        Utils.id36To10(submission.id()),
+        "unknown",
         epochSecondsToString(submission.createdUtc()),
         submission.karma(),
         submission.commentCount(),
@@ -104,14 +120,14 @@ final class VaultApi {
 
   static String createPlaceholderSubmissionQuery(String submissionId36) {
     return String.format(CREATE_PLACEHOLDER_SUBMISSION_PREFIX + " (%d) ON CONFLICT DO NOTHING;",
-        Long.parseLong(submissionId36, 36));
+        Utils.id36To10(submissionId36));
   }
 
   static PreparedStatement createPlaceholderSubmission(Connection conn, String submissionId36)
       throws SQLException {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -129,7 +145,7 @@ final class VaultApi {
       throws SQLException {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -141,7 +157,7 @@ final class VaultApi {
   static String deleteObservationsQuery(String submissionId36) {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -152,7 +168,8 @@ final class VaultApi {
       + " SELECT val.tax_ordinal, val.submission_id, submissions.upload_date"
       + " FROM (VALUES";
   private static final String INSERT_OBSERVATIONS_SUFFIX = ") val (tax_ordinal, submission_id)"
-      + " JOIN submissions USING (submission_id);";
+      + " JOIN submissions USING (submission_id)"
+      + " ON CONFLICT DO NOTHING";
 
   static PreparedStatement insertObservations(Connection conn, String submissionId36, Answer answer)
       throws SQLException {
@@ -161,21 +178,38 @@ final class VaultApi {
     }
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
-    final PreparedStatement st = conn.prepareStatement(INSERT_OBSERVATIONS_PREFIX
-        + " (?, ?)" + INSERT_OBSERVATIONS_SUFFIX);
-    for (String code : answer.taxa()) {
-      final int ordinal = Taxonomy.ordinal(code);
+//    final PreparedStatement st = conn.prepareStatement(INSERT_OBSERVATIONS_PREFIX
+//        + " (?, ?)" + INSERT_OBSERVATIONS_SUFFIX);
+//    for (String code : answer.taxa()) {
+//      final int ordinal = Taxonomy.ordinal(code);
+//      if (ordinal < 0) {
+//        st.close();
+//        return null;
+//      }
+//      st.setInt(1, ordinal);
+//      st.setLong(2, submissionId);
+//      st.addBatch();
+//    }
+//    return st;
+    final String questions = "(?, ?)";
+    final String template = INSERT_OBSERVATIONS_PREFIX + " "
+        + answer.taxa().stream().map(s -> questions).collect(Collectors.joining(", "))
+        + INSERT_OBSERVATIONS_SUFFIX;
+    final PreparedStatement st = conn.prepareStatement(template);
+    final Iterator<String> itr = answer.taxa().iterator();
+    for (int i = 0; itr.hasNext(); i++) {
+      final int ordinal = Taxonomy.ordinal(itr.next());
       if (ordinal < 0) {
         st.close();
         return null;
       }
-      st.setInt(1, ordinal);
-      st.setLong(2, submissionId);
-      st.addBatch();
+      final int base = 2 * i;
+      st.setInt(base + 1, ordinal);
+      st.setLong(base + 2, submissionId);
     }
     return st;
   }
@@ -183,7 +217,7 @@ final class VaultApi {
   static String insertObservationsQuery(String submissionId36, Answer answer) {
     final long submissionId;
     try {
-      submissionId = Long.parseLong(submissionId36, 36);
+      submissionId = Utils.id36To10(submissionId36);
     } catch (Exception e) {
       return null;
     }
@@ -208,23 +242,37 @@ final class VaultApi {
         submissionId);
   }
 
-  static PreparedStatement deleteSubmission(Connection conn, String submissionId36)
+  private static final String DELETE_SUBMISSIONS_PREFIX = "DELETE FROM submissions WHERE submission_id IN (";
+  private static final String DELETE_SUBMISSIONS_SUFFIX = ");";
+
+  static PreparedStatement deleteSubmissions10(Connection conn, Collection<Long> submissionIds)
       throws SQLException {
-    final long submissionId;
-    try {
-      submissionId = Long.parseLong(submissionId36, 36);
-    } catch (Exception e) {
+    if (submissionIds == null || submissionIds.isEmpty()) {
       return null;
     }
+    return conn.prepareStatement(deleteSubmissions10Query(submissionIds));
+  }
+
+  static String deleteSubmissions10Query(Collection<Long> submissionId10s) {
+    if (submissionId10s == null || submissionId10s.isEmpty()) {
+      return null;
+    }
+    return DELETE_SUBMISSIONS_PREFIX
+        + submissionId10s.stream().map(String::valueOf).collect(Collectors.joining(", "))
+        + DELETE_SUBMISSIONS_SUFFIX;
+  }
+
+  static PreparedStatement deleteSubmission(Connection conn, long submissionId10)
+      throws SQLException {
     final PreparedStatement st = conn.prepareStatement("DELETE FROM submissions WHERE submission_id = ?;");
-    st.setLong(1, submissionId);
+    st.setLong(1, submissionId10);
     return st;
   }
 
-  static String deleteSubmissionQuery(String submissionId36) {
+  static String deleteSubmissionQuery(long submissionId10) {
     try {
       return "DELETE FROM submissions WHERE submission_id = "
-          +  Long.parseLong(submissionId36, 36) + ';';
+          +  submissionId10 + ';';
     } catch (Exception e) {
       return null;
     }

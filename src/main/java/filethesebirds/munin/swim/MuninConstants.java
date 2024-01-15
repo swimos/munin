@@ -19,8 +19,12 @@ public final class MuninConstants {
   private MuninConstants() {
   }
 
+  public static long lookbackHours() {
+    return 36L; // FIXME: env
+  }
+
   public static long lookbackSeconds() {
-    return 36L * 60 * 60;
+    return 60L * 60L * lookbackHours();
   }
 
   public static long lookbackMillis() {

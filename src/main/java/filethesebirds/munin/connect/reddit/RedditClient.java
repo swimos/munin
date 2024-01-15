@@ -15,6 +15,8 @@
 package filethesebirds.munin.connect.reddit;
 
 import filethesebirds.munin.connect.http.HttpUtils;
+import filethesebirds.munin.connect.http.StatusCodeException;
+import filethesebirds.munin.connect.reddit.response.EmptyRedditResponse;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Submission;
 import java.io.InputStream;
@@ -22,6 +24,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.function.Supplier;
+import swim.http.HttpStatus;
 import swim.json.Json;
 import swim.structure.Value;
 import static java.net.http.HttpResponse.BodyHandler;
@@ -33,30 +36,26 @@ public class RedditClient {
   private final RedditPasswordGrantProvider grant;
 
   private RedditClient(HttpClient executor, RedditPasswordGrantProvider grant)
-      throws RedditApiException {
+      throws StatusCodeException {
     this.executor = executor;
     this.grant = grant;
     refreshToken(this.grant.currentExpiry());
   }
 
   public static RedditClient fromStream(HttpClient executor, InputStream stream)
-      throws RedditApiException {
+      throws StatusCodeException {
     final RedditCredentials credentials = RedditCredentials.fromStream(stream);
     return new RedditClient(executor, new RedditPasswordGrantProvider(credentials));
   }
 
-  private static <V> boolean responseIsSuccessful(HttpResponse<V> response) {
-    return response.statusCode() / 100 == 2;
-  }
-
-  private static <V> boolean responseIsUnauthorized(HttpResponse<V> response) {
-    return response.statusCode() == 403;
-  }
-
-  private void refreshToken(long oldExpiry) throws RedditApiException {
-    if (oldExpiry == this.grant.currentExpiry()) {
+  // Issue a refresh token, or block-wait until issued.
+  // Concurrent calls to this method will also block.
+  // Plays well with "scheduleWithFixedDelay"-type recurring tasks
+  private void refreshToken(long expectedExpiry) throws StatusCodeException {
+    if (expectedExpiry == this.grant.currentExpiry()) {
       synchronized (this.grant) {
-        if (oldExpiry == this.grant.currentExpiry()) {
+        System.out.println("[INFO] RedditClient entered token refresh synchronize block");
+        if (expectedExpiry == this.grant.currentExpiry()) { // may have already been swapped
           this.grant.fetchNewToken(this.executor);
         }
       }
@@ -64,116 +63,124 @@ public class RedditClient {
   }
 
   private <T> HttpResponse<T> makeAuthorizedRequest(HttpRequest request, BodyHandler<T> handler)
-      throws RedditApiException {
-    final HttpResponse<T> response = HttpUtils.fireRequest(this.executor,
-        request, handler, 5);
-    if (responseIsSuccessful(response)) {
+      throws StatusCodeException {
+    final HttpResponse<T> response = HttpUtils.fireRequest(this.executor, request, handler, 3);
+    if (response.statusCode() / 100 == 2) {
       return response;
+    } else {
+      throw new StatusCodeException(response.statusCode(), response.headers().toString());
     }
-    if (!responseIsUnauthorized(response)) {
-      throw new RedditApiException("Problematic API response with code " + response.statusCode()
-          + ". Headers: " + response.headers());
-    }
-    return null;
   }
 
   private <T> HttpResponse<T> makeApiCall(Supplier<HttpRequest> requestSupplier,
                             HttpResponse.BodyHandler<T> handler)
-      throws RedditApiException {
-    final long now = System.currentTimeMillis();
-    final long oldExpiry = this.grant.currentExpiry();
-    if (this.grant.currentToken() == null || now < this.grant.currentExpiry()) {
-      final HttpResponse<T> res = makeAuthorizedRequest(requestSupplier.get(), handler);
-      if (res != null) {
-        return res;
+      throws StatusCodeException {
+    final long expectedExpiry = this.grant.currentExpiry();
+    if (this.grant.currentToken() == null || System.currentTimeMillis() < this.grant.currentExpiry()) {
+      try {
+        return makeAuthorizedRequest(requestSupplier.get(), handler);
+      } catch (StatusCodeException e) {
+        if (e.status().code() != HttpStatus.UNAUTHORIZED.code()
+            && e.status().code() != HttpStatus.FORBIDDEN.code()) {
+          throw e;
+        }
       }
     }
-    // Expired token, refresh it in a thread-safe manner and try again
-    refreshToken(oldExpiry);
+    refreshToken(expectedExpiry);
     return makeAuthorizedRequest(requestSupplier.get(), handler);
   }
 
-  public Value fetchIdentityMe() throws RedditApiException {
+  public Value fetchIdentityMe() throws StatusCodeException {
     return Json.parse(makeApiCall(() -> RedditApi.getIdentityMe(this.grant.currentToken(),
         this.grant.userAgent()), BodyHandlers.ofString()).body());
   }
 
-  public RedditResponse<Submission[]> fetchOneUndocumentedPost() throws RedditApiException {
+  public RedditResponse<Submission[]> fetchOneUndocumentedPost() throws StatusCodeException {
     return Submission.submissionsFetchCrux(makeApiCall(() ->
             RedditApi.getOneUndocumentedPost(this.grant.currentToken(), this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Submission[]> fetchMaxUndocumentedPosts() throws RedditApiException {
+  public RedditResponse<Submission[]> fetchMaxUndocumentedPosts() throws StatusCodeException {
     return Submission.submissionsFetchCrux(makeApiCall(() ->
             RedditApi.getMaxUndocumentedPosts(this.grant.currentToken(), this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Submission[]> fetchUndocumentedPostsBefore(String before)
-      throws RedditApiException {
+  public RedditResponse<Submission[]> fetchUndocumentedPostsBefore(String fullname) throws StatusCodeException {
     return Submission.submissionsFetchCrux(makeApiCall(() ->
-            RedditApi.getUndocumentedPostsBefore(before, this.grant.currentToken(),
+            RedditApi.getUndocumentedPostsBefore(fullname, this.grant.currentToken(),
                 this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Submission[]> fetchUndocumentedPostsAfter(String after)
-      throws RedditApiException {
+  public RedditResponse<Submission[]> fetchUndocumentedPostsAfter(String fullname) throws StatusCodeException {
     return Submission.submissionsFetchCrux(makeApiCall(() ->
-            RedditApi.getUndocumentedPostsAfter(after, this.grant.currentToken(),
+            RedditApi.getUndocumentedPostsAfter(fullname, this.grant.currentToken(),
                 this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Comment[]> fetchOneUndocumentedComment() throws RedditApiException {
+  public RedditResponse<Comment[]> fetchOneUndocumentedComment() throws StatusCodeException {
     return Comment.commentsFetchCrux(makeApiCall(() ->
             RedditApi.getOneUndocumentedComment(this.grant.currentToken(), this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Comment[]> fetchMaxUndocumentedComments() throws RedditApiException {
+  public RedditResponse<Comment[]> fetchMaxUndocumentedComments() throws StatusCodeException {
     return Comment.commentsFetchCrux(makeApiCall(() ->
             RedditApi.getMaxUndocumentedComments(this.grant.currentToken(), this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Comment[]> fetchUndocumentedCommentsBefore(String before)
-      throws RedditApiException {
+  public RedditResponse<Comment[]> fetchUndocumentedCommentsBefore(String before) throws StatusCodeException {
     return Comment.commentsFetchCrux(makeApiCall(() ->
-            RedditApi.getUndocumentedCommentsBefore(before, this.grant.currentToken(),
-                this.grant.userAgent()),
+            RedditApi.getUndocumentedCommentsBefore(before, this.grant.currentToken(), this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Comment[]> fetchUndocumentedCommentsAfter(String after)
-      throws RedditApiException {
+  public RedditResponse<Comment[]> fetchUndocumentedCommentsAfter(String after) throws StatusCodeException {
     return Comment.commentsFetchCrux(makeApiCall(() ->
-            RedditApi.getUndocumentedCommentsAfter(after, this.grant.currentToken(),
-                this.grant.userAgent()),
+            RedditApi.getUndocumentedCommentsAfter(after, this.grant.currentToken(), this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Comment[]> fetchReadCommentsArticle(String article)
-      throws RedditApiException {
+  public RedditResponse<Comment[]> fetchReadCommentsArticle(String article) throws StatusCodeException {
     return Comment.commentsFetchCrux(makeApiCall(() ->
-            RedditApi.getReadCommentsArticle(article, this.grant.currentToken(),
-                this.grant.userAgent()),
+            RedditApi.getReadCommentsArticle(article, this.grant.currentToken(), this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Comment> publishAnyComment(String parent, String body) throws RedditApiException {
+  public RedditResponse<Submission[]> fetchReadById(String joinedIds) throws StatusCodeException {
+    return Submission.submissionsFetchCrux(makeApiCall(() ->
+            RedditApi.getReadById(joinedIds, this.grant.currentToken(), this.grant.userAgent()),
+        BodyHandlers.ofInputStream()));
+  }
+
+  public RedditResponse<Comment> publishAnyComment(String parent, String body) throws StatusCodeException {
     return Comment.commentPublishCrux(makeApiCall(() ->
             RedditApi.postAnyComment(parent, body, this.grant.currentToken(),
                 this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
   }
 
-  public RedditResponse<Comment> publishEditEditusertext(String id, String body) throws RedditApiException {
+  public RedditResponse<Comment> publishEditEditusertext(String id, String body) throws StatusCodeException {
     return Comment.commentPublishCrux(makeApiCall(() ->
             RedditApi.postEditEditusertext(id, body, this.grant.currentToken(),
                 this.grant.userAgent()),
         BodyHandlers.ofInputStream()));
+  }
+
+  public RedditResponse<Void> removeEditDel(String fullname) throws StatusCodeException {
+    return new EmptyRedditResponse(makeApiCall(() -> RedditApi.postEditDel(fullname, this.grant.currentToken(), this.grant.userAgent()),
+        BodyHandlers.ofInputStream()));
+  }
+
+  @FunctionalInterface
+  public interface Callable<V> {
+
+    RedditResponse<V> call(RedditClient client) throws StatusCodeException;
+
   }
 
 }
