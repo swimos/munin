@@ -139,7 +139,7 @@ The `answered`, `unreviewed`, and `reviewed` lanes are similarly available.
 ### Just answers (including empty ones) for all submissions
 
 ```
-% swim-cli sync -h warps://munin.swim.services -n /throttledPublish -l answers 
+% swim-cli sync -h warps://munin.swim.services -n /submissions -l answers
 
 @update(key:"/submission/xxkv53")@answer{taxa:{comyel}}
 @update(key:"/submission/xxkwcq")
