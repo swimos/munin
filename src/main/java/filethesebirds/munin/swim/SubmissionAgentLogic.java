@@ -21,12 +21,16 @@ import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Forms;
 import filethesebirds.munin.digest.Motion;
 import filethesebirds.munin.digest.Submission;
+import filethesebirds.munin.digest.Taxonomy;
 import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.answer.Answers;
 import filethesebirds.munin.digest.motion.EBirdExtractPurify;
 import filethesebirds.munin.digest.motion.Extract;
 import filethesebirds.munin.digest.motion.ExtractParse;
 import filethesebirds.munin.digest.motion.Review;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import swim.concurrent.AbstractTask;
 import swim.concurrent.TaskRef;
 import swim.structure.Num;
@@ -71,9 +75,12 @@ final class SubmissionAgentLogic {
         .slot("karma", s.karma())
         .slot("commentCount", s.commentCount());
     if (a == null || a.taxa().isEmpty()) {
-      return r.slot("taxa", Value.extant()).slot("reviewers", Value.extant());
+      return r.slot("taxa", Value.extant()).slot("commons", Value.extant()).slot("reviewers", Value.extant());
     } else {
+      final Set<String> commons = a.taxa().stream()
+          .map(Taxonomy::commonName).filter(Objects::nonNull).collect(Collectors.toUnmodifiableSet());
       return r.slot("taxa", Forms.forSetString().mold(a.taxa()).toValue())
+          .slot("commons", commons.isEmpty() ? Value.extant() : Forms.forSetString().mold(commons).toValue())
           .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
               : Forms.forSetString().mold(a.reviewers()).toValue());
     }
