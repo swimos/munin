@@ -16,6 +16,7 @@ package filethesebirds.munin.swim;
 
 import filethesebirds.munin.connect.http.HttpConnectException;
 import filethesebirds.munin.connect.http.StatusCodeException;
+import filethesebirds.munin.connect.reddit.ConcurrentTokenRefreshException;
 import filethesebirds.munin.connect.reddit.RedditClient;
 import filethesebirds.munin.connect.reddit.RedditResponse;
 import filethesebirds.munin.connect.vault.VaultClient;
@@ -150,6 +151,8 @@ final class Logic {
     debug(runtime, caller, "Will perform Reddit " + actionName);
     try {
       return Optional.of(action.call(Shared.redditClient()));
+    } catch (ConcurrentTokenRefreshException e) {
+      error(runtime, caller, "(Reddit " + actionName + ") Lost token fetch race");
     } catch (StatusCodeException e) {
       onStatusCodeException.accept(e);
     } catch (HttpConnectException e) {
