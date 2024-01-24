@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import swim.http.HttpStatus;
 import swim.json.Json;
@@ -34,6 +35,7 @@ public class RedditClient {
 
   private final HttpClient executor;
   private final RedditPasswordGrantProvider grant;
+  private final AtomicBoolean isRefreshing = new AtomicBoolean(false);
 
   private RedditClient(HttpClient executor, RedditPasswordGrantProvider grant)
       throws StatusCodeException {
@@ -48,16 +50,18 @@ public class RedditClient {
     return new RedditClient(executor, new RedditPasswordGrantProvider(credentials));
   }
 
-  // Issue a refresh token, or block-wait until issued.
-  // Concurrent calls to this method will also block.
-  // Plays well with "scheduleWithFixedDelay"-type recurring tasks
   private void refreshToken(long expectedExpiry) throws StatusCodeException {
     if (expectedExpiry == this.grant.currentExpiry()) {
-      synchronized (this.grant) {
-        System.out.println("[INFO] RedditClient entered token refresh synchronize block");
-        if (expectedExpiry == this.grant.currentExpiry()) { // may have already been swapped
+      if (isRefreshing.compareAndSet(false, true)) {
+        try {
+          System.out.println("[INFO] RedditClient fetching new token, concurrent client calls will be denied");
           this.grant.fetchNewToken(this.executor);
+        } finally {
+          this.isRefreshing.set(false);
+          System.out.println("[INFO] RedditClient released concurrent usage denial restriction");
         }
+      } else {
+        throw new ConcurrentTokenRefreshException();
       }
     }
   }
