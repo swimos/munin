@@ -82,8 +82,7 @@ public class RedditPasswordGrantProvider {
     final String accessToken = bodyVal.get("access_token").stringValue();
     final long expiresIn = bodyVal.get("expires_in").longValue(3600L);
     this.currentToken = accessToken;
-    this.currentExpiry = // beforeFire - TOKEN_FETCH_TIMEOUT_MILLIS + expiresIn * 1000;
-        beforeFire - TOKEN_FETCH_TIMEOUT_MILLIS + 180L * 1000;
+    this.currentExpiry = beforeFire - TOKEN_FETCH_TIMEOUT_MILLIS + expiresIn * 1000;
     System.out.println("[INFO] token expiry updated to " + this.currentExpiry + " (from payload="
         + Json.toString(bodyVal.updatedSlot("access_token", "[REDACTED]")) + ")");
   }
