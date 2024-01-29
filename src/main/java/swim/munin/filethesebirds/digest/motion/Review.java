@@ -12,16 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-open module swim.munin {
-  // Minimal
-  requires java.net.http;
-  requires swim.server;
+package swim.munin.filethesebirds.digest.motion;
 
-  // FileTheseBirds
-  requires transitive java.sql;
-  requires org.commonmark;
-  requires org.commonmark.ext.autolink;
-  requires org.apache.commons.text;
-  requires org.postgresql.jdbc;
-  requires com.zaxxer.hikari;
+import swim.munin.filethesebirds.digest.Motion;
+
+/**
+ * An extensively capable {@link Motion} that is only available to established
+ * r/WhatsThisBird reviewers.
+ */
+public interface Review extends Motion {
+
+  String reviewer();
+
+  /**
+   * A minimally-potent view of this {@code Review}.
+   *
+   * @return  this {@code Motion}, minus any features that require {@code
+   * Review} privileges.
+   */
+  Suggestion toSuggestion();
+
 }

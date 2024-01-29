@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-open module swim.munin {
-  // Minimal
-  requires java.net.http;
-  requires swim.server;
+package swim.munin.connect.http;
 
-  // FileTheseBirds
-  requires transitive java.sql;
-  requires org.commonmark;
-  requires org.commonmark.ext.autolink;
-  requires org.apache.commons.text;
-  requires org.postgresql.jdbc;
-  requires com.zaxxer.hikari;
+public class HttpConnectException extends RuntimeException {
+
+  public HttpConnectException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
+
 }

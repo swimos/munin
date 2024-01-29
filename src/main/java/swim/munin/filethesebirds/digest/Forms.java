@@ -12,16 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-open module swim.munin {
-  // Minimal
-  requires java.net.http;
-  requires swim.server;
+package swim.munin.filethesebirds.digest;
 
-  // FileTheseBirds
-  requires transitive java.sql;
-  requires org.commonmark;
-  requires org.commonmark.ext.autolink;
-  requires org.apache.commons.text;
-  requires org.postgresql.jdbc;
-  requires com.zaxxer.hikari;
+import java.util.Set;
+import swim.structure.Form;
+
+public final class Forms {
+
+  private Forms() {
+  }
+
+  public static Form<Set<String>> forSetString() {
+    return SET_STRING_FORM;
+  }
+
+  public static Form<Answer> forAnswer() {
+    return swim.munin.filethesebirds.digest.answer.Forms.forAnswer();
+  }
+
+  public static Form<Motion> forMotion() {
+    return swim.munin.filethesebirds.digest.motion.Forms.forMotion();
+  }
+
+  private static final Form<Set<String>> SET_STRING_FORM = Form.forSet(Form.forString());
+
 }

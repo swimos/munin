@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-open module swim.munin {
-  // Minimal
-  requires java.net.http;
-  requires swim.server;
+package swim.munin.filethesebirds.digest;
 
-  // FileTheseBirds
-  requires transitive java.sql;
-  requires org.commonmark;
-  requires org.commonmark.ext.autolink;
-  requires org.apache.commons.text;
-  requires org.postgresql.jdbc;
-  requires com.zaxxer.hikari;
+import java.util.Set;
+
+/**
+ * An incremental update to a work-in-progress {@link Answer}.
+ *
+ * @see Answer
+ */
+public interface Motion {
+
+  Set<String> plusTaxa();
+
+  Set<String> overrideTaxa();
+
+  Motion additionalTaxa(Set<String> append);
+
+  boolean isEmpty();
+
 }

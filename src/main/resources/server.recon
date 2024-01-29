@@ -1,4 +1,4 @@
-@kernel(class: 'filethesebirds.munin.swim.MuninLogKernel', level: 'debug')
+@kernel(class: 'MuninLogKernel', level: 'debug')
 
 munin: @fabric {
   # Default plane is sufficient, but ensure to configure policy in code
@@ -7,16 +7,16 @@ munin: @fabric {
   # Singleton Web Agent with multiple traits
   @node {
     uri: "/submissions"
-    @agent(class: "filethesebirds.munin.swim.SubmissionsAgent")
-    @agent(class: "filethesebirds.munin.swim.SubmissionsFetchAgent")
-    @agent(class: "filethesebirds.munin.swim.CommentsFetchAgent")
-    @agent(class: "filethesebirds.munin.swim.PublishingAgent")
+    @agent(class: "SubmissionsAgent")
+    @agent(class: "SubmissionsFetchAgent")
+    @agent(class: "CommentsFetchAgent")
+    @agent(class: "PublishingAgent")
   }
 
   # Dynamically instantiable Web Agent type with single trait
   @node {
     pattern: "/submission/:id"
-    @agent(class: "filethesebirds.munin.swim.SubmissionAgent")
+    @agent(class: "SubmissionAgent")
   }
 }
 
