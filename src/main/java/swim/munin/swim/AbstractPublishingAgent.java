@@ -21,9 +21,8 @@ import swim.structure.Form;
  * @param <T>  the type that quantifies create-comment and edit-comment tasks
  *             executed by this {@code AbstractPublishingAgent}
  */
-public abstract class AbstractPublishingAgent<T> extends AbstractAgent {
-
-  private static final long ACTION_PERIOD_MS = 10L * 1000;
+public abstract class AbstractPublishingAgent<T> extends AbstractAgent
+    implements MuninAgent {
 
   protected TimerRef throttleTimer;
 
@@ -74,16 +73,19 @@ public abstract class AbstractPublishingAgent<T> extends AbstractAgent {
     if (this.publishQueue.isEmpty() && this.deleteQueue.isEmpty()) {
       Logic.info(this, "throttleTimer", "Idling timer due to lack of tasks");
     } else {
-      Logic.debug(this, "throttleTimer", "Rescheduling timer execution for " + ACTION_PERIOD_MS + " ms");
-      this.throttleTimer.reschedule(ACTION_PERIOD_MS);
+      Logic.debug(this, "throttleTimer", "Rescheduling timer execution for " +
+          environment().publishPeriodMillis() + " ms");
+      this.throttleTimer.reschedule(environment().publishPeriodMillis() );
     }
   }
 
   protected abstract void executeOneThrottledAction();
 
   @Override
-  public void didStart() {
+  public final void didStart() {
     Logic.info(this, "didStart()", "");
+    Logic.warn(this, "didStart()", "Started a Web Agent that is capable of publishing comments to Reddit; "
+        + "if you did not intend to do this, remove all AbstractPublishingAgent subclasses from your Swim server configuration and re-run");
   }
 
 }

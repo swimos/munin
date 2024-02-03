@@ -14,29 +14,37 @@
 
 package swim.munin.filethesebirds.swim;
 
-import swim.munin.Utils;
-import swim.munin.filethesebirds.connect.ebird.EBirdClient;
-import swim.munin.filethesebirds.connect.vault.VaultClient;
-import swim.munin.connect.reddit.RedditClient;
 import java.io.InputStream;
 import java.net.http.HttpClient;
+import java.util.Properties;
+import swim.munin.MuninEnvironment;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.RedditClient;
+import swim.munin.filethesebirds.connect.ebird.EBirdClient;
+import swim.munin.filethesebirds.connect.vault.VaultClient;
+import swim.munin.swim.Coalescence;
 import swim.munin.swim.LiveSubmissions;
 
 /**
  * Utility class containing objects that might be used concurrently by multiple
  * Web Agents.
  */
-public class Shared {
+public final class Shared {
 
   private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
   private Shared() {
   }
 
+  private static MuninEnvironment muninEnvironment = null;
   private static LiveSubmissions liveSubmissions = null;
   private static EBirdClient eBirdClient = null;
   private static RedditClient redditClient = null;
   private static VaultClient vaultClient = null;
+
+  public static MuninEnvironment muninEnvironment() {
+    return Shared.muninEnvironment;
+  }
 
   public static LiveSubmissions liveSubmissions() {
     return Shared.liveSubmissions;
@@ -56,6 +64,22 @@ public class Shared {
 
   public static VaultClient vaultClient() {
     return Shared.vaultClient;
+  }
+
+  public static void loadMuninEnvironment() {
+    if (Shared.muninEnvironment != null) {
+      throw new IllegalStateException("Multiple muninEnvironment loading forbidden");
+    }
+    Shared.muninEnvironment = MuninEnvironment.fromSystemProperties();
+    System.out.println("[INFO] Using environment " + Shared.muninEnvironment);
+  }
+
+  public static void loadMuninEnvironment(Properties properties) {
+    if (Shared.muninEnvironment != null) {
+      throw new IllegalStateException("Multiple muninEnvironment loading forbidden");
+    }
+    Shared.muninEnvironment = MuninEnvironment.fromProperties(properties);
+    System.out.println("[INFO] Using environment " + Shared.muninEnvironment);
   }
 
   public static void loadLiveSubmissions(Coalescence coalescence) {

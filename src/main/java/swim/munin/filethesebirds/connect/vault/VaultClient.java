@@ -16,15 +16,15 @@ package swim.munin.filethesebirds.connect.vault;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import swim.munin.connect.reddit.Submission;
-import swim.munin.Utils;
-import swim.munin.filethesebirds.digest.Answer;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.stream.Collectors;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Submission;
+import swim.munin.filethesebirds.digest.Answer;
 
 public abstract class VaultClient {
 

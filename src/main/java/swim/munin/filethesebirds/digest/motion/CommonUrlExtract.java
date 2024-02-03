@@ -14,9 +14,9 @@
 
 package swim.munin.filethesebirds.digest.motion;
 
-import swim.munin.filethesebirds.digest.Taxonomy;
 import java.util.Locale;
 import java.util.Set;
+import swim.munin.filethesebirds.digest.Taxonomy;
 import swim.uri.Uri;
 import swim.uri.UriPath;
 import swim.uri.UriQuery;

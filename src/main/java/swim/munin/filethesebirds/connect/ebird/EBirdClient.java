@@ -14,12 +14,12 @@
 
 package swim.munin.filethesebirds.connect.ebird;
 
-import swim.munin.connect.http.HttpUtils;
 import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.function.Supplier;
+import swim.munin.connect.http.HttpUtils;
 import static java.net.http.HttpResponse.BodyHandlers;
 
 public class EBirdClient {

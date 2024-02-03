@@ -14,9 +14,6 @@
 
 package swim.munin.filethesebirds.digest.answer;
 
-import swim.munin.filethesebirds.digest.Taxonomy;
-import swim.munin.filethesebirds.digest.Users;
-import swim.munin.filethesebirds.digest.Answer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +22,9 @@ import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Link;
 import org.commonmark.node.Text;
 import org.commonmark.parser.Parser;
+import swim.munin.filethesebirds.digest.Answer;
+import swim.munin.filethesebirds.digest.Taxonomy;
+import swim.munin.filethesebirds.digest.Users;
 import swim.uri.Uri;
 
 public final class Publication {

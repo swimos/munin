@@ -12,14 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package swim.munin.filethesebirds.swim;
+package swim.munin.swim;
 
-import swim.munin.connect.reddit.RedditResponse;
-import swim.munin.connect.reddit.Comment;
-import swim.munin.connect.reddit.Submission;
-import swim.munin.Utils;
-import swim.munin.connect.reddit.RedditClient;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,96 +23,100 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import swim.munin.swim.Logic;
+import swim.munin.MuninEnvironment;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Comment;
+import swim.munin.connect.reddit.RedditClient;
+import swim.munin.connect.reddit.RedditResponse;
+import swim.munin.connect.reddit.Submission;
 import swim.structure.Text;
 import swim.structure.Value;
 
 /**
- * {@link SubmissionsFetchAgent}-focused utility class.
+ * Utility class focused on logic pertaining to fetching new Reddit submissions.
  */
-final class SubmissionsFetchAgentLogic {
+public final class SubmissionsFetchLogic {
 
-  private static final String CALLER_LANE = "preemptFetch";
   private static final String CALLER_TASK = "[GatherSubmissionsTask]";
   private static final Value SHELVE_PAYLOAD = Text.from("shelve");
 
-  private SubmissionsFetchAgentLogic() {
+  private SubmissionsFetchLogic() {
   }
 
-  static void preemptSubmissionsFetchOnCommand(SubmissionsFetchAgent runtime, Value v) {
-    Logic.trace(runtime, CALLER_LANE, "Begin onCommand(" + v + ")");
-    runtime.fetchTimer = Logic.scheduleRecurringBlocker(runtime, CALLER_TASK,
-        runtime::fetchTimer, 3000L, 180000L, () -> fetchTimerAction(runtime));
-    Logic.trace(runtime, CALLER_LANE, "End onCommand()");
-  }
-
-  private static void fetchTimerAction(SubmissionsFetchAgent runtime) {
-    final long until = (System.currentTimeMillis() - MuninConstants.lookbackMillis()) / 1000L;
+  public static RunResult doRun(AbstractSubmissionsFetchAgent runtime,
+                                MuninEnvironment environment,
+                                LiveSubmissions liveSubmissions) {
+    final long until = (System.currentTimeMillis() - environment.lookbackMillis()) / 1000L;
     final Map<String, Submission> liveCandidates = new HashMap<>(256);
-    final Map<Long, Submission> shelfCandidates = Shared.liveSubmissions().activeSnapshot();
+    final Map<Long, Submission> shelfCandidates = liveSubmissions.activeSnapshot();
 
-    // Gather (fetch active submissions into liveSubmissions and identify shelf candidates, but do not update vault)
+    // Gather (fetch active submissions into liveSubmissions and identify shelf candidates)
     Logic.trace(runtime, CALLER_TASK, "Will seek submissions through epoch (s) " + until);
-    new GatherAgentTask(until, runtime, liveCandidates, shelfCandidates).run();
+    new GatherAgentTask(until, runtime, liveSubmissions, liveCandidates, shelfCandidates).run();
     Logic.debug(runtime, CALLER_TASK, "Gathered " + liveCandidates.size() + " live submissions through epoch (s) " + until);
 
-    // Shelve (update liveSubmissions#shelved and remove entries from vault as needed)
+    // Shelve (update liveSubmissions#shelved)
+    final Set<String> didShelve;
     if (liveCandidates.size() > 0 && !shelfCandidates.isEmpty()) {
       final String joinedCandidates = shelfCandidates.keySet().stream()
           .map(k -> "t3_" + Utils.id10To36(k))
           .collect(Collectors.joining(","));
       Logic.info(runtime, CALLER_TASK, "Will check submissions " + joinedCandidates + " for shelving");
-      final Set<String> didShelve = new HashSet<>(shelfCandidates.size());
-      shelve(runtime, joinedCandidates, didShelve);
+      didShelve = new HashSet<>(shelfCandidates.size());
+      shelve(runtime, liveSubmissions, joinedCandidates, didShelve);
       liveCandidates.keySet().removeAll(didShelve);
+    } else {
+      didShelve = Collections.emptySet();
     }
+    return new RunResult() {
 
-    // Upsert active submissions into vault
-    if (!liveCandidates.isEmpty()) {
-      Logic.doOrLogVaultAction(runtime, CALLER_TASK,
-          "Will upsert " + liveCandidates.size() + " submissions into vault",
-          "Failed to upsert submissions",
-          client -> client.upsertSubmissions(liveCandidates.values()));
-    }
+      @Override
+      public Map<String, Submission> live() {
+        return liveCandidates;
+      }
+
+      @Override
+      public Set<String> didShelve() {
+        return didShelve;
+      }
+
+    };
   }
 
-  private static void shelve(SubmissionsFetchAgent runtime, String candidates, Set<String> didShelve) {
+  private static void shelve(AbstractSubmissionsFetchAgent runtime, LiveSubmissions liveSubmissions,
+                             String candidates, Set<String> didShelve) {
     Logic.doRedditCallable(runtime, CALLER_TASK, "getById", client -> client.fetchReadById(candidates))
         .ifPresent(response -> {
           int i = 0;
           final Submission[] essence = response.essence();
           for (Submission s : essence) {
             if ("[deleted]".equals(s.author())) {
-              i += shelve(runtime, s.id(), "deletion by submitter", didShelve);
+              i += shelve(runtime, liveSubmissions, s.id(), "deletion by submitter", didShelve);
             } else if (s.flair() != null && s.flair().startsWith("removed")) {
-              i += shelve(runtime, s.id(), "removal by moderator", didShelve);
+              i += shelve(runtime, liveSubmissions, s.id(), "removal by moderator", didShelve);
             }
           }
           if (i > 0) {
             Logic.info(runtime, CALLER_TASK, i + " of " + essence.length + " candidates were shelved, "
-                + "notifying SubmissionAgents and vault (id36s=" + didShelve + ")");
+                + "notifying SubmissionAgents (id36s=" + didShelve + ")");
             didShelve.forEach(s -> {
               runtime.command("/submission/" + s, "shelve", SHELVE_PAYLOAD);
             });
-
-            Logic.doOrLogVaultAction(runtime, CALLER_TASK,
-                "Will remove submissions with IDs " + didShelve + " from vault",
-                "Failed to remove submissions from vault",
-                client -> client.deleteSubmissions36(didShelve));
           }
         });
   }
 
-  private static int shelve(SubmissionsFetchAgent runtime, String id36, String reason, Set<String> didShelve) {
+  private static int shelve(AbstractSubmissionsFetchAgent runtime, LiveSubmissions liveSubmissions,
+                            String id36, String reason, Set<String> didShelve) {
     Logic.debug(runtime, CALLER_TASK, "Will shelve " + id36 + " due to " + reason);
-    if (Shared.liveSubmissions().shelve(runtime, CALLER_TASK, id36)) {
+    if (liveSubmissions.shelve(runtime, CALLER_TASK, id36)) {
       didShelve.add(id36);
       return 1;
     }
     return 0;
   }
 
-  static long coalesceSubmissions(long until, Map<String, Submission> active,
+  public static long coalesceSubmissions(long until, Map<String, Submission> active,
                                   Map<String, List<Comment>> batches, Map<String, Integer> counts) {
     System.out.println("[TRACE] Coalescence#submissionsFetch: Begin coalesceSubmissions");
     if (!active.isEmpty() || !counts.isEmpty()) {
@@ -127,11 +127,20 @@ final class SubmissionsFetchAgentLogic {
     return task.boundaryId;
   }
 
+  public interface RunResult {
+
+    Map<String, Submission> live();
+
+    Set<String> didShelve();
+
+  }
+
   /**
-   * A task that uses Reddit's {@code r/whatsthisbird/new} endpoint to gather
-   * the latest information about all live submissions.
+   * A short-lived object that wraps a task which may use multiple consecutive
+   * Reddit API calls to gather all submissions to a subreddit that were created
+   * after a provided timestamp.
    */
-  private abstract static class GatherTask {
+  public abstract static class GatherTask {
 
     final long until;
 
@@ -185,16 +194,18 @@ final class SubmissionsFetchAgentLogic {
    * {@code GatherTask} variation used from a {@code SubmissionsFetchAgent} and
    * additionally responsible for flagging possible discarded submissions.
    */
-  private static class GatherAgentTask extends GatherTask {
+  public static class GatherAgentTask extends GatherTask {
 
-    private final SubmissionsFetchAgent runtime;
+    private final AbstractSubmissionsFetchAgent runtime;
+    private final LiveSubmissions liveSubmissions;
     private final Map<String, Submission> active;
     private final Map<Long, Submission> shelfCandidates;
 
-    private GatherAgentTask(long until, SubmissionsFetchAgent runtime,
+    private GatherAgentTask(long until, AbstractSubmissionsFetchAgent runtime, LiveSubmissions liveSubmissions,
                             Map<String, Submission> active, Map<Long, Submission> shelfCandidates) {
       super(until);
       this.runtime = runtime;
+      this.liveSubmissions = liveSubmissions;
       this.active = active;
       this.shelfCandidates = shelfCandidates;
     }
@@ -220,8 +231,8 @@ final class SubmissionsFetchAgentLogic {
     void onLiveSubmission(Submission s) {
       final long id10 = Utils.id36To10(s.id());
       this.shelfCandidates.remove(id10);
-      if (!Shared.liveSubmissions().isShelved(id10)) {
-        Shared.liveSubmissions().putActive(this.runtime, CALLER_TASK, id10, s);
+      if (!this.liveSubmissions.isShelved(id10)) {
+        this.liveSubmissions.putActive(this.runtime, CALLER_TASK, id10, s);
         this.active.put(s.id(), s);
         this.runtime.command("/submission/" + s.id(), "info",
             Submission.form().mold(s).toValue());
@@ -233,7 +244,7 @@ final class SubmissionsFetchAgentLogic {
   /**
    * {@code GatherTask} variation used to generate steady-state startup.
    */
-  private static class GatherCoalesceTask extends GatherTask {
+  public static class GatherCoalesceTask extends GatherTask {
 
     private final Map<String, Submission> active;
     private final Map<String, List<Comment>> batches;

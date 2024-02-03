@@ -14,9 +14,9 @@
 
 package swim.munin.connect.reddit.response;
 
-import swim.munin.connect.reddit.RedditResponse;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
+import swim.munin.connect.reddit.RedditResponse;
 import swim.structure.Value;
 
 public abstract class NominalRedditResponse<V> implements RedditResponse<V> {

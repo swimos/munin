@@ -1,3 +1,17 @@
+// Copyright 2015-2023 Swim.inc
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package swim.munin.swim;
 
 import swim.api.SwimLane;
@@ -7,13 +21,19 @@ import swim.api.lane.JoinValueLane;
 import swim.concurrent.TimerRef;
 import swim.munin.Utils;
 import swim.structure.Form;
+import swim.structure.Text;
 import swim.structure.Value;
 
 /**
  * A singleton Web Agent whose lanes stream insights regarding all active
  * submissions for some subreddit.
+ *
+ * <p>By default, each {@code AbstractSubmissionsAgent} modifies a {@code
+ * LiveSubmissions} instance only by expiring posts that exceed a certain age;
+ * it periodically checks for this by using {@link #expiryTimer}.
  */
-public class AbstractSubmissionsAgent extends AbstractAgent {
+public abstract class AbstractSubmissionsAgent extends AbstractAgent
+    implements MuninAgent {
 
   private static final long EXPIRY_TICK_PERIOD_MS = 15L * 60 * 1000;
 
@@ -75,6 +95,34 @@ public class AbstractSubmissionsAgent extends AbstractAgent {
   @Override
   public void didStart() {
     Logic.info(this, "didStart()", "");
+    Logic.debug(this, "didStart()", "Scheduling timer tick for " + EXPIRY_TICK_PERIOD_MS + " ms");
+    if (this.expiryTimer != null) {
+      Logic.debug(this, "didStart()", "Canceling expiryTimer");
+      this.expiryTimer.cancel();
+      this.expiryTimer = null;
+    }
+    this.expiryTimer = setTimer(EXPIRY_TICK_PERIOD_MS, () -> {
+      Logic.trace(this, "[expiryTimer]", "Tick");
+      final long now = System.currentTimeMillis();
+      liveSubmissions().expire(this)
+          .forEach(id36 -> {
+            Logic.debug(this, "[expiryTimer]", "Notifying /submission/" + id36 + " of expiry");
+            command("/submission/" + id36, "expire", Text.from("expire"));
+          });
+      final long delta = now + EXPIRY_TICK_PERIOD_MS - System.currentTimeMillis();
+      Logic.debug(this, "[expiryTimer]", "Scheduling timer tick for " + delta + " ms");
+      this.expiryTimer.reschedule(Math.max(1000L, delta));
+    });
+  }
+
+  @Override
+  public void willClose() {
+    Logic.info(this, "willClose()", "");
+    if (this.expiryTimer != null) {
+      Logic.debug(this, "willClose()", "Canceling expiryTimer");
+      this.expiryTimer.cancel();
+      this.expiryTimer = null;
+    }
   }
 
 }

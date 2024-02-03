@@ -14,12 +14,12 @@
 
 package swim.munin.filethesebirds.digest.answer;
 
-import swim.munin.filethesebirds.digest.Answer;
-import swim.munin.filethesebirds.digest.motion.Review;
-import swim.munin.filethesebirds.digest.motion.Suggestion;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import swim.munin.filethesebirds.digest.Answer;
+import swim.munin.filethesebirds.digest.motion.Review;
+import swim.munin.filethesebirds.digest.motion.Suggestion;
 import swim.recon.Recon;
 
 class MutableAnswer implements Answer {

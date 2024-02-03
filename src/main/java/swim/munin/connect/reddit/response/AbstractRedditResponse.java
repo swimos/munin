@@ -14,10 +14,10 @@
 
 package swim.munin.connect.reddit.response;
 
-import swim.munin.connect.reddit.RedditResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
+import swim.munin.connect.reddit.RedditResponse;
 
 public abstract class AbstractRedditResponse<V> implements RedditResponse<V> {
 

@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package swim.munin.filethesebirds.swim;
+package swim.munin.swim;
 
-import swim.munin.connect.reddit.Comment;
-import swim.munin.connect.reddit.Submission;
-import swim.munin.Utils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +21,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 import swim.api.ref.WarpRef;
-import swim.munin.swim.LiveSubmissions;
+import swim.munin.MuninEnvironment;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Comment;
+import swim.munin.connect.reddit.Submission;
 import swim.structure.Form;
 import swim.structure.Text;
 
@@ -32,6 +32,7 @@ public final class Coalescence {
 
   private static final Form<List<Comment>> FORM_LIST_COMMENT = Form.forList(Comment.form());
 
+  private final long lookbackSeconds;
   private final long until;
   private final Map<String, Submission> active;
   private final Map<String, List<Comment>> batches;
@@ -40,8 +41,9 @@ public final class Coalescence {
   private Comment bookmark = null;
   private final WarpRef swim;
 
-  private Coalescence(WarpRef swim) {
-    this.until = System.currentTimeMillis() / 1000L - MuninConstants.lookbackSeconds();
+  private Coalescence(MuninEnvironment environment, WarpRef swim) {
+    this.lookbackSeconds = environment.lookbackSeconds();
+    this.until = System.currentTimeMillis() / 1000L - this.lookbackSeconds;
     this.active = new HashMap<>(256);
     this.batches = new HashMap<>(256);
     this.counts = new HashMap<>(256);
@@ -50,14 +52,14 @@ public final class Coalescence {
   }
 
   private long getSubmissions() {
-    final long boundary = SubmissionsFetchAgentLogic.coalesceSubmissions(this.until, this.active, this.batches,
+    final long boundary = SubmissionsFetchLogic.coalesceSubmissions(this.until, this.active, this.batches,
         this.counts);
     System.out.println("[INFO] Coalescence#submissionsFetch: Identified " + this.active.size() + " active submissions");
     return boundary;
   }
 
   private Comment getComments(long boundaryId10) {
-    return CommentsFetchAgentLogic.coalesceComments(this.until, boundaryId10, this.active,
+    return CommentsFetchLogic.coalesceComments(this.until, boundaryId10, this.active,
         this.batches, this.counts, this.shelved);
   }
 
@@ -74,7 +76,7 @@ public final class Coalescence {
   }
 
   public LiveSubmissions toLiveSubmissions() {
-    return new LiveSubmissions(map36To10(this.active), map36To10(this.shelved));
+    return new LiveSubmissions(this.lookbackSeconds, map36To10(this.active), map36To10(this.shelved));
   }
 
   private static <V> ConcurrentSkipListMap<Long, V> map36To10(Map<String, V> map36) {
@@ -101,8 +103,8 @@ public final class Coalescence {
     swim.command("/submissions", "preemptCommentsFetch", Comment.form().mold(this.bookmark).toValue());
   }
 
-  public static Coalescence coalesce(WarpRef swim) {
-    final Coalescence coalesce = new Coalescence(swim);
+  public static Coalescence coalesce(MuninEnvironment environment, WarpRef swim) {
+    final Coalescence coalesce = new Coalescence(environment, swim);
     final long boundary = coalesce.getSubmissions();
     coalesce.bookmark = coalesce.getComments(boundary);
     coalesce.logIncompleteSubmissions(coalesce.bookmark.createdUtc());

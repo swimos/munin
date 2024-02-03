@@ -1,10 +1,10 @@
 package swim.munin.filethesebirds.digest.motion;
 
-import swim.munin.connect.reddit.Comment;
-import swim.munin.filethesebirds.digest.DigestTestUtils;
 import java.util.Collections;
 import java.util.Set;
 import org.testng.annotations.Test;
+import swim.munin.connect.reddit.Comment;
+import swim.munin.filethesebirds.digest.DigestTestUtils;
 import static org.testng.Assert.assertEquals;
 
 public class ExtractParseSpec {

@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package swim.munin.filethesebirds.swim;
+package swim.munin.swim;
 
-import swim.munin.Utils;
 import swim.api.auth.Identity;
 import swim.api.policy.AbstractPolicy;
 import swim.api.policy.PolicyDirective;
+import swim.munin.Utils;
+import swim.munin.filethesebirds.swim.Shared;
 import swim.uri.Uri;
 import swim.warp.CommandMessage;
 import swim.warp.Envelope;
 
-public class MuninPolicy extends AbstractPolicy {
+public class ReadOnlyPolicy extends AbstractPolicy {
 
-  public MuninPolicy() {
+  public ReadOnlyPolicy() {
   }
 
   @Override

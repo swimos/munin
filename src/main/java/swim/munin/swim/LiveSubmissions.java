@@ -14,8 +14,6 @@
 
 package swim.munin.swim;
 
-import swim.munin.Utils;
-import swim.munin.connect.reddit.Submission;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,17 +21,20 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import swim.api.agent.AbstractAgent;
-import swim.munin.filethesebirds.swim.MuninConstants;
-import swim.munin.filethesebirds.swim.SubmissionsAgent;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Submission;
 
 public final class LiveSubmissions {
 
+  private final long lookbackSeconds;
   private final NavigableMap<Long, Submission> active;
   private final NavigableMap<Long, Long> shelved;
 
-  public LiveSubmissions(NavigableMap<Long, Submission> active,
+  public LiveSubmissions(long lookbackSeconds,
+                         NavigableMap<Long, Submission> active,
                          NavigableMap<Long, Long> shelved) {
-    final long then = System.currentTimeMillis() / 1000L - MuninConstants.lookbackSeconds();
+    this.lookbackSeconds = lookbackSeconds;
+    final long then = System.currentTimeMillis() / 1000L - this.lookbackSeconds;
     active.entrySet().removeIf(e -> e.getValue().createdUtc() <= then);
     shelved.entrySet().removeIf(e -> e.getValue() <= then);
     this.active = active;
@@ -90,8 +91,8 @@ public final class LiveSubmissions {
     return isShelved(Utils.id36To10(id36));
   }
 
-  public Set<String> expire(SubmissionsAgent runtime) {
-    final long then = System.currentTimeMillis() / 1000L - MuninConstants.lookbackSeconds();
+  public Set<String> expire(AbstractAgent runtime) {
+    final long then = System.currentTimeMillis() / 1000L - this.lookbackSeconds;
     final Set<String> result = new HashSet<>();
     for (Iterator<Map.Entry<Long, Submission>> itr = this.active.entrySet().iterator();
          itr.hasNext(); ) {

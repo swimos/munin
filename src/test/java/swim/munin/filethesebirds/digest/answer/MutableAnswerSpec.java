@@ -1,11 +1,11 @@
 package swim.munin.filethesebirds.digest.answer;
 
+import java.util.Set;
+import org.testng.annotations.Test;
 import swim.munin.filethesebirds.digest.Answer;
 import swim.munin.filethesebirds.digest.motion.ImmutableMotionSpec;
 import swim.munin.filethesebirds.digest.motion.Review;
 import swim.munin.filethesebirds.digest.motion.Suggestion;
-import java.util.Set;
-import org.testng.annotations.Test;
 import static org.testng.Assert.assertEquals;
 
 public class MutableAnswerSpec {

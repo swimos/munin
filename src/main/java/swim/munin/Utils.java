@@ -17,8 +17,10 @@ package swim.munin;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public final class Utils {
 
@@ -32,14 +34,14 @@ public final class Utils {
   public static InputStream openConfigFile(String diskPath, String resourcePath) {
     if (diskPath == null || diskPath.isEmpty()) {
       System.out.println("[INFO] Will load resource at " + resourcePath);
-      return Main.class.getResourceAsStream(resourcePath);
+      return Utils.class.getResourceAsStream(resourcePath);
     }
     try {
       System.out.println("[INFO] Will load file at " + diskPath);
       return new FileInputStream(diskPath);
     } catch (IOException e) {
       System.out.println("[INFO] Will load resource at " + resourcePath);
-      return Main.class.getResourceAsStream(resourcePath);
+      return Utils.class.getResourceAsStream(resourcePath);
     }
   }
 
@@ -54,7 +56,7 @@ public final class Utils {
   }
 
   // ===========================================================================
-  // Miscellaneous
+  // Reddit utilities
   // ===========================================================================
 
   public static String id10To36(long id10) {
@@ -63,6 +65,29 @@ public final class Utils {
 
   public static long id36To10(String id36) {
     return Long.parseLong(id36, 36);
+  }
+
+  public static String sanitizeSubreddit(String s) {
+    if (isMulti(s)) {
+      throw new UnsupportedOperationException("Multi-reddit logic not yet implemented");
+    } else if (validateSubreddit(s)) {
+      return s.toLowerCase(Locale.ROOT);
+    } else {
+      throw new IllegalArgumentException("Bad subreddit name (too long, or invalid characters) " + s);
+    }
+  }
+
+  private static boolean isMulti(String s) {
+    return s != null && s.contains("+");
+  }
+
+  private static final Pattern SUBREDDIT_REGEX_PATTERN = Pattern.compile("\\A[A-Za-z0-9][A-Za-z0-9_]{1,20}\\z");
+
+  private static boolean validateSubreddit(String s) {
+    if (s == null || s.length() < 2) {
+      throw new IllegalArgumentException("Bad subreddit name (too short) " + s);
+    }
+    return SUBREDDIT_REGEX_PATTERN.matcher(s).matches();
   }
 
 }

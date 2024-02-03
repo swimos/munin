@@ -14,12 +14,6 @@
 
 package swim.munin.swim;
 
-import swim.munin.connect.http.HttpConnectException;
-import swim.munin.connect.http.StatusCodeException;
-import swim.munin.connect.reddit.ConcurrentTokenRefreshException;
-import swim.munin.connect.reddit.RedditResponse;
-import swim.munin.filethesebirds.connect.vault.VaultClient;
-import swim.munin.connect.reddit.RedditClient;
 import java.net.http.HttpTimeoutException;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -28,6 +22,12 @@ import swim.api.agent.AbstractAgent;
 import swim.concurrent.AbstractTask;
 import swim.concurrent.TaskRef;
 import swim.concurrent.TimerRef;
+import swim.munin.connect.http.HttpConnectException;
+import swim.munin.connect.http.StatusCodeException;
+import swim.munin.connect.reddit.ConcurrentTokenRefreshException;
+import swim.munin.connect.reddit.RedditClient;
+import swim.munin.connect.reddit.RedditResponse;
+import swim.munin.filethesebirds.connect.vault.VaultClient;
 import swim.munin.filethesebirds.swim.Shared;
 
 /**

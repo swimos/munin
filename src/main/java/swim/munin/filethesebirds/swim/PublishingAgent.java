@@ -1,13 +1,29 @@
+// Copyright 2015-2023 Swim.inc
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package swim.munin.filethesebirds.swim;
 
 import swim.api.SwimLane;
 import swim.api.lane.CommandLane;
 import swim.api.lane.JoinValueLane;
 import swim.api.lane.MapLane;
-import swim.munin.filethesebirds.digest.Answer;
+import swim.munin.MuninEnvironment;
 import swim.munin.connect.reddit.Comment;
+import swim.munin.filethesebirds.digest.Answer;
 import swim.munin.filethesebirds.digest.Forms;
 import swim.munin.swim.AbstractPublishingAgent;
+import swim.munin.swim.LiveSubmissions;
 import swim.structure.Form;
 import swim.structure.Value;
 
@@ -78,6 +94,16 @@ public class PublishingAgent extends AbstractPublishingAgent<Answer> {
   protected final CommandLane<Comment> addPublisherComment = commandLane()
       .valueForm(Comment.form())
       .onCommand(this::addPublisherCommentOnCommand);
+
+  @Override
+  public MuninEnvironment environment() {
+    return Shared.muninEnvironment();
+  }
+
+  @Override
+  public LiveSubmissions liveSubmissions() {
+    return Shared.liveSubmissions();
+  }
 
   @Override
   protected Form<Answer> publishQueueValueForm() {

@@ -14,14 +14,14 @@
 
 package swim.munin.filethesebirds.digest.motion;
 
-import swim.munin.filethesebirds.digest.motion.commonmark.Hint;
-import swim.munin.filethesebirds.digest.motion.commonmark.VagueHint;
 import java.util.HashSet;
 import java.util.Set;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.CustomNode;
 import org.commonmark.node.Link;
 import org.commonmark.node.Text;
+import swim.munin.filethesebirds.digest.motion.commonmark.Hint;
+import swim.munin.filethesebirds.digest.motion.commonmark.VagueHint;
 import swim.uri.Uri;
 
 class ExtractingVisitor extends AbstractVisitor {

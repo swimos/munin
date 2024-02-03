@@ -14,22 +14,35 @@
 
 package swim.munin.filethesebirds.swim;
 
-import swim.munin.Utils;
-import swim.munin.filethesebirds.digest.Answer;
-import swim.munin.connect.reddit.Comment;
-import swim.munin.filethesebirds.digest.Forms;
-import swim.munin.filethesebirds.digest.Motion;
-import swim.munin.connect.reddit.Submission;
-import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import swim.api.SwimLane;
-import swim.api.agent.AbstractAgent;
-import swim.api.lane.CommandLane;
 import swim.api.lane.MapLane;
 import swim.api.lane.ValueLane;
+import swim.concurrent.AbstractTask;
+import swim.concurrent.TaskRef;
+import swim.munin.MuninEnvironment;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Comment;
+import swim.munin.connect.reddit.Submission;
+import swim.munin.filethesebirds.connect.ebird.EBirdApiException;
+import swim.munin.filethesebirds.digest.Answer;
+import swim.munin.filethesebirds.digest.Forms;
+import swim.munin.filethesebirds.digest.Motion;
+import swim.munin.filethesebirds.digest.Taxonomy;
+import swim.munin.filethesebirds.digest.Users;
+import swim.munin.filethesebirds.digest.answer.Answers;
+import swim.munin.filethesebirds.digest.motion.EBirdExtractPurify;
+import swim.munin.filethesebirds.digest.motion.Extract;
+import swim.munin.filethesebirds.digest.motion.ExtractParse;
+import swim.munin.filethesebirds.digest.motion.Review;
+import swim.munin.swim.AbstractSubmissionAgent;
 import swim.munin.swim.LiveSubmissions;
 import swim.munin.swim.Logic;
 import swim.structure.Form;
 import swim.structure.Num;
+import swim.structure.Record;
 import swim.structure.Value;
 
 /**
@@ -49,106 +62,232 @@ import swim.structure.Value;
  * encountering an aforementioned shelve-capable comment
  * </ul>
  */
-public class SubmissionAgent extends AbstractAgent {
-
-  @SwimLane("info")
-  ValueLane<Submission> info = valueLane()
-      .valueForm(Submission.form())
-      .didSet(this::infoDidSet);
+public class SubmissionAgent extends AbstractSubmissionAgent {
 
   @SwimLane("answer")
-  ValueLane<Answer> answer = valueLane()
+  protected final ValueLane<Answer> answer = valueLane()
       .valueForm(Forms.forAnswer())
       .didSet(this::answerDidSet);
 
   @SwimLane("status")
-  ValueLane<Value> status = this.<Value>valueLane()
+  protected final ValueLane<Value> status = this.<Value>valueLane()
       .didSet(this::statusDidSet);
 
   @SwimLane("motions")
-  MapLane<Value, Motion> motions = mapLane()
+  protected final MapLane<Value, Motion> motions = mapLane()
       .keyForm(Form.forValue())
       .valueForm(Forms.forMotion())
       .didUpdate(this::motionsDidUpdate);
 
-  /**
-   * A command-type endpoint that triggers closing this {@code SubmissionAgent}
-   * and clearing its lanes.
-   */
-  @SwimLane("expire")
-  CommandLane<Value> expire = this.<Value>commandLane()
-      .onCommand(this::expireOnCommand);
-
-  /**
-   * A command-type endpoint that triggers closing this {@code SubmissionAgent},
-   * clearing its lanes, and removing all traces of its underlying submission
-   * from vault.
-   */
-  @SwimLane("shelve")
-  CommandLane<Value> shelve = this.<Value>commandLane()
-      .onCommand(this::shelveOnCommand);
-
-  @SwimLane("addNewComment")
-  CommandLane<Comment> addNewComment = commandLane()
-      .valueForm(Comment.form())
-      .onCommand(c -> onNewComment(c, "addNewComment"));
-
-  @SwimLane("addManyComments")
-  CommandLane<List<Comment>> addManyComments = commandLane()
-      .valueForm(Form.forList(Comment.form()))
-      .onCommand(comments -> {
-        if (comments != null && !comments.isEmpty()) {
-          for (int i = comments.size() - 1; i >= 0; i--) {
-            onNewComment(comments.get(i), "addManyComments");
-          }
-        }
-      });
-
-  // Callback logic
-
-  protected void infoDidSet(Submission n, Submission o) {
-    SubmissionAgentLogic.infoDidSet(this, n, o);
-  }
-
-  protected void answerDidSet(Answer n, Answer o) {
-    SubmissionAgentLogic.answerDidSet(this, n, o);
-  }
-
-  protected void statusDidSet(Value n, Value o) {
-    // stub
-  }
-
-  protected void expireOnCommand(Value v) {
-    SubmissionAgentLogic.expireOnCommand(this, v);
-  }
-
-  protected void shelveOnCommand(Value v) {
-    SubmissionAgentLogic.shelveOnCommand(this, v);
-  }
-
-  protected void onNewComment(Comment comment, String lane) {
-    SubmissionAgentLogic.onNewComment(this, lane, comment);
-  }
-
-  protected void motionsDidUpdate(Value k, Motion n, Motion o) {
-    SubmissionAgentLogic.motionsDidUpdate(this);
+  @Override
+  public MuninEnvironment environment() {
+    return Shared.muninEnvironment();
   }
 
   @Override
-  public void didStart() {
-    Logic.info(this, "didStart()", "");
-    try {
-      final Num id10 =  Num.from(Utils.id36To10(getProp("id").stringValue(null)));
-      command("/submissions", "subscribe", id10);
-    } catch (Exception e) {
-      didFail(e);
-      close();
+  public LiveSubmissions liveSubmissions() {
+    return Shared.liveSubmissions();
+  }
+
+  @Override
+  protected void infoDidSet(Submission n, Submission o) {
+    Logic.trace(this, "info", "Begin didSet(" + n + ", " + o + ")");
+    if (n != null) {
+      final Answer ans = this.answer.get();
+      this.status.set(merge(n, ans));
+    }
+    Logic.trace(this, "info", "End didSet()");
+  }
+
+  @Override
+  protected void purge(String caller, long id10) {
+    Logic.executeOrLogVaultAction(this, caller,
+        "Will delete " + id10 + " from vault",
+        "Failed to delete " + id10 + " from vault",
+        client -> client.deleteSubmission10(id10));
+  }
+
+  @Override
+  protected void clearLanes() {
+    this.motions.clear();
+    this.status.set(Value.absent());
+    this.answer.set(null);
+    this.info.set(null);
+  }
+
+  protected void answerDidSet(Answer n, Answer o) {
+    Logic.trace(this, "answer", "Begin didSet(" + n + ", " + o + ")");
+    this.status.set(merge(this.info.get(), n));
+    Logic.executeOrLogVaultAction(this, "answer",
+        "Assigning observations " + n + " under " + getProp("id").stringValue(null),
+        "Failed to assign observations",
+        client -> client.assignObservations(this.getProp("id").stringValue(), n));
+    Logic.trace(this, "answer", "End didSet()");
+  }
+
+  private static Value merge(Submission s, Answer a) {
+    if (s == null || s.id() == null || s.id().isEmpty()) {
+      return Value.extant();
+    }
+    final Record r = Record.create(12).attr("status")
+        // info
+        .slot("id", s.id())
+        .slot("title", s.title())
+        .slot("flair", s.flair())
+        .slot("thumbnail", s.thumbnail())
+        .slot("createdUtc", s.createdUtc())
+        .slot("karma", s.karma())
+        .slot("commentCount", s.commentCount());
+    if (a == null || a.taxa().isEmpty()) {
+      return r.slot("taxa", Value.extant()).slot("commons", Value.extant()).slot("reviewers", Value.extant());
+    } else {
+      final Set<String> commons = a.taxa().stream()
+          .map(Taxonomy::commonName).filter(Objects::nonNull).collect(Collectors.toUnmodifiableSet());
+      return r.slot("taxa", Forms.forSetString().mold(a.taxa()).toValue())
+          .slot("commons", commons.isEmpty() ? Value.extant() : Forms.forSetString().mold(commons).toValue())
+          .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
+              : Forms.forSetString().mold(a.reviewers()).toValue());
+    }
+  }
+
+  protected void motionsDidUpdate(Value k, Motion n, Motion o) {
+    final Answer answer = Answers.mutable().apply(this.motions);
+    final Answer current = this.answer.get();
+    if (current == null) {
+      if (!answer.taxa().isEmpty()) {
+        this.answer.set(answer);
+      }
+    } else if (!answer.taxa().isEmpty()) { // if taxa present in new answer
+      // change the established answer if the taxa or the reviewers are different
+      if (!current.taxa().equals(answer.taxa())
+          || !current.reviewers().equals(answer.reviewers())) {
+        this.answer.set(answer);
+      }
     }
   }
 
   @Override
-  public void willClose() {
-    Logic.info(this, "willClose()", "");
+  protected boolean commentShelvesSubmission(Comment comment) {
+    return super.commentShelvesSubmission(comment)
+        || (comment.body().startsWith("!rm") && Users.userIsAdmin(comment.author()));
+  }
+
+  @Override
+  protected boolean onNewComment(String caller, Comment comment) {
+    Logic.info(this, caller, "Received comment from " + comment.author());
+    if (Users.userIsPublisher(comment.author())) {
+      Logic.debug(this, caller, "Will defer publisher=" + comment.author()
+          + " comment analysis to PublishingAgent");
+      command("/submissions", "addPublisherComment",
+          Comment.form().mold(comment).toValue());
+      return true;
+    }
+    if (commentShelvesSubmission(comment)) {
+      Logic.info(this, caller, "Will shelve submission");
+      if (Shared.liveSubmissions().shelve(this, caller, comment.submissionId())) {
+        command("/submissions", "shelveSubmission", Num.from(Utils.id36To10(comment.submissionId())));
+        Logic.executeOrLogVaultAction(this, caller,
+            "Deleting submission " + comment.submissionId(),
+            "Failed to delete submission " + comment.submissionId(),
+            client -> client.deleteSubmission36(comment.submissionId()));
+      }
+      return false;
+    }
+    final Extract extract = ExtractParse.parseComment(comment); // CPU-intensive, not I/O-bound
+    if (extract.isEmpty()) {
+      Logic.debug(this, caller, "Did not analyze unremarkable comment from " + comment.author());
+    } else if (extractIsImpure(extract)) {
+      Logic.debug(this, caller, "Will analyze hint-containing comment via PhasedPurifyTask");
+      // I/O-bound
+      final PhasedPurifyTask action = new PhasedPurifyTask(this, comment, extract);
+      if (!action.cue()) {
+        Logic.error(this, caller,"Failed to cue purification task for comment " + comment);
+      }
+    } else {
+      final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
+      Logic.info(this, caller, "Will put " + laneKey + ", " + extract.base());
+      this.motions.put(laneKey, extract.base());
+    }
+    return true;
+  }
+
+  private static boolean extractIsImpure(Extract extract) {
+    return !extract.hints().isEmpty() || !extract.vagueHints().isEmpty();
+  }
+
+  private static class PhasedPurifyTask {
+
+    private static final int MAX_EXPLORABLE_HINTS = 10;
+    private static final int MAX_FAILURES = 5;
+
+    private volatile Extract soFar;
+    private volatile int hintsSoFar;
+    private volatile int failures;
+    private final TaskRef task;
+
+    PhasedPurifyTask(SubmissionAgent runtime, Comment comment, Extract soFar) {
+      this.soFar = soFar;
+      this.hintsSoFar = 0;
+      this.task = runtime.asyncStage().task(new AbstractTask() {
+
+        @Override
+        public void runTask() {
+          while (!isComplete()) {
+            try {
+              setSoFar(EBirdExtractPurify.purifyOneHint(Shared.eBirdClient(), getSoFar()));
+              PhasedPurifyTask.this.hintsSoFar++;
+            } catch (EBirdApiException e) {
+              if (++failures <= MAX_FAILURES) {
+                Logic.warn(runtime, "[PhasedPurifyTask]",
+                    "Exception in processing hint for comment " + comment + ", retrying in ~1 min");
+                runtime.setTimer(60000L + (long) (Math.random() * 30000) - 15000L,
+                    PhasedPurifyTask.this.task::cue);
+              } else {
+                Logic.error(runtime, "[PhasedPurifyTask]",
+                    "Exception in processing hint for comment " + comment + ", aborting");
+                runtime.didFail(e);
+              }
+              return;
+            }
+          }
+          // On success
+          final Motion purified = getSoFar().base();
+          if ((purified instanceof Review) || !purified.isEmpty()) {
+            Logic.info(runtime, "[PhasedPurifyTask]", "Purified extract into " + purified
+                + ", will update motions accordingly");
+            final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
+            runtime.motions.put(laneKey, purified);
+          } else {
+            Logic.warn(runtime, "[PhasedPurifyTask]", "Purification of comment "
+                + comment + " unexpectedly yielded empty motion");
+          }
+        }
+
+        @Override
+        public boolean taskWillBlock() {
+          return true;
+        }
+
+      });
+    }
+
+    private Extract getSoFar() {
+      return this.soFar;
+    }
+
+    private void setSoFar(Extract extract) {
+      this.soFar = extract;
+    }
+
+    private boolean isComplete() {
+      return this.hintsSoFar >= MAX_EXPLORABLE_HINTS
+          || EBirdExtractPurify.extractIsPurified(this.soFar);
+    }
+
+    boolean cue() {
+      return this.task.cue();
+    }
+
   }
 
 }

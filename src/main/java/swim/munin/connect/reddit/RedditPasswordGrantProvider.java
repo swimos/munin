@@ -14,8 +14,6 @@
 
 package swim.munin.connect.reddit;
 
-import swim.munin.connect.http.HttpUtils;
-import swim.munin.connect.http.StatusCodeException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -24,6 +22,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import swim.json.Json;
+import swim.munin.connect.http.HttpUtils;
+import swim.munin.connect.http.StatusCodeException;
 import swim.structure.Value;
 import static java.net.http.HttpResponse.BodyHandlers;
 

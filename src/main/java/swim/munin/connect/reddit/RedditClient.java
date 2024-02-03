@@ -14,19 +14,20 @@
 
 package swim.munin.connect.reddit;
 
-import java.net.URI;
-import java.time.Duration;
-import swim.munin.connect.http.HttpUtils;
-import swim.munin.connect.http.StatusCodeException;
-import swim.munin.connect.reddit.response.EmptyRedditResponse;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import swim.http.HttpStatus;
 import swim.json.Json;
+import swim.munin.Utils;
+import swim.munin.connect.http.HttpUtils;
+import swim.munin.connect.http.StatusCodeException;
+import swim.munin.connect.reddit.response.EmptyRedditResponse;
 import swim.structure.Value;
 import static java.net.http.HttpResponse.BodyHandler;
 import static java.net.http.HttpResponse.BodyHandlers;
@@ -206,6 +207,7 @@ public class RedditClient {
     private static final URI POST_EDIT_DEL_URI = URI.create(DOMAIN + "/api/del");
     // private final String GET_READ_COMMENTS_ARTICLE_FMT = DOMAIN + this.subreddit + "/comments/%s?threaded=false&sort=old";
 
+    // Fixed-subreddit constants
     private final String subreddit;
 
     private final URI getOneUndocumentedComment;
@@ -219,7 +221,7 @@ public class RedditClient {
     private final String getUndocumentedPostsAfterFmt;
 
     public Api(String subreddit) {
-      this.subreddit = "/r/" + subreddit; // FIXME: sanitize
+      this.subreddit = "/r/" + Utils.sanitizeSubreddit(subreddit);
       // comments fetch
       final String getUndocumentedComments = this.subreddit + "/comments";
       this.getOneUndocumentedComment = URI.create(DOMAIN + getUndocumentedComments + ONE_LIMIT);

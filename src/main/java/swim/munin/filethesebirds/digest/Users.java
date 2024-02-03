@@ -14,12 +14,12 @@
 
 package swim.munin.filethesebirds.digest;
 
-import swim.munin.Utils;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashSet;
 import java.util.Set;
+import swim.munin.Utils;
 
 public final class Users {
 

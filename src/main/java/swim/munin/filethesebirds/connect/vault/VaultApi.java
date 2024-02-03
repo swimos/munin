@@ -14,10 +14,6 @@
 
 package swim.munin.filethesebirds.connect.vault;
 
-import swim.munin.connect.reddit.Submission;
-import swim.munin.filethesebirds.digest.Taxonomy;
-import swim.munin.Utils;
-import swim.munin.filethesebirds.digest.Answer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -30,6 +26,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.Collectors;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Submission;
+import swim.munin.filethesebirds.digest.Answer;
+import swim.munin.filethesebirds.digest.Taxonomy;
 
 final class VaultApi {
 

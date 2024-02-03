@@ -14,9 +14,9 @@
 
 package swim.munin.filethesebirds.digest.motion;
 
+import java.util.Set;
 import swim.munin.filethesebirds.digest.Answer;
 import swim.munin.filethesebirds.digest.Motion;
-import java.util.Set;
 
 /**
  * A Reddit comment's distillation into suggested modifications to some {@link

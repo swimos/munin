@@ -12,23 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package swim.munin.filethesebirds.swim;
+package swim.munin.swim;
 
-public final class MuninConstants {
+import swim.munin.MuninEnvironment;
 
-  private MuninConstants() {
-  }
+public interface MuninAgent {
 
-  public static long lookbackHours() {
-    return 36L; // FIXME: env
-  }
+  MuninEnvironment environment();
 
-  public static long lookbackSeconds() {
-    return 60L * 60L * lookbackHours();
-  }
-
-  public static long lookbackMillis() {
-    return 1000L * lookbackSeconds();
-  }
+  LiveSubmissions liveSubmissions();
 
 }

@@ -14,15 +14,15 @@
 
 package swim.munin.filethesebirds.swim;
 
-import swim.api.lane.MapLane;
-import swim.munin.connect.reddit.RedditResponse;
-import swim.munin.filethesebirds.digest.Answer;
-import swim.munin.connect.reddit.Comment;
-import swim.munin.filethesebirds.digest.answer.Forms;
-import swim.munin.filethesebirds.digest.answer.Publication;
-import swim.munin.Utils;
 import java.util.Map;
 import java.util.function.Consumer;
+import swim.api.lane.MapLane;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Comment;
+import swim.munin.connect.reddit.RedditResponse;
+import swim.munin.filethesebirds.digest.Answer;
+import swim.munin.filethesebirds.digest.answer.Forms;
+import swim.munin.filethesebirds.digest.answer.Publication;
 import swim.munin.swim.Logic;
 import swim.structure.Attr;
 import swim.structure.Item;

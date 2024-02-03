@@ -14,11 +14,11 @@
 
 package swim.munin.filethesebirds.digest;
 
-import swim.munin.filethesebirds.digest.motion.Review;
-import swim.munin.filethesebirds.digest.motion.Suggestion;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import swim.munin.filethesebirds.digest.motion.Review;
+import swim.munin.filethesebirds.digest.motion.Suggestion;
 
 /**
  * A possibly in-progress view of community-identified taxa within an

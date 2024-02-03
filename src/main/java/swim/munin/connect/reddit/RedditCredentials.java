@@ -14,9 +14,9 @@
 
 package swim.munin.connect.reddit;
 
-import swim.munin.Utils;
 import java.io.InputStream;
 import java.util.Properties;
+import swim.munin.Utils;
 
 public class RedditCredentials {
 

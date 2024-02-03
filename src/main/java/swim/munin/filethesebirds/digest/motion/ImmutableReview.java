@@ -14,12 +14,12 @@
 
 package swim.munin.filethesebirds.digest.motion;
 
-import swim.munin.filethesebirds.digest.Forms;
-import swim.munin.filethesebirds.digest.Users;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import swim.munin.filethesebirds.digest.Forms;
+import swim.munin.filethesebirds.digest.Users;
 import swim.recon.Recon;
 import swim.structure.Attr;
 import swim.structure.Form;

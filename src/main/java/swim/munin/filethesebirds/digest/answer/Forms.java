@@ -14,8 +14,8 @@
 
 package swim.munin.filethesebirds.digest.answer;
 
-import swim.munin.filethesebirds.digest.Answer;
 import java.util.Set;
+import swim.munin.filethesebirds.digest.Answer;
 import swim.structure.Attr;
 import swim.structure.Form;
 import swim.structure.Item;

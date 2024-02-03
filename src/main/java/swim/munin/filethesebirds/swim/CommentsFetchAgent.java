@@ -14,8 +14,10 @@
 
 package swim.munin.filethesebirds.swim;
 
+import swim.munin.MuninEnvironment;
 import swim.munin.filethesebirds.digest.motion.HintCache;
 import swim.munin.swim.AbstractCommentsFetchAgent;
+import swim.munin.swim.LiveSubmissions;
 import swim.munin.swim.Logic;
 
 /**
@@ -23,6 +25,16 @@ import swim.munin.swim.Logic;
  * processing by appropriate {@link SubmissionAgent SubmissionAgents}.
  */
 public class CommentsFetchAgent extends AbstractCommentsFetchAgent {
+
+  @Override
+  public MuninEnvironment environment() {
+    return Shared.muninEnvironment();
+  }
+
+  @Override
+  public LiveSubmissions liveSubmissions() {
+    return Shared.liveSubmissions();
+  }
 
   @Override
   protected void onIdleResponse() {

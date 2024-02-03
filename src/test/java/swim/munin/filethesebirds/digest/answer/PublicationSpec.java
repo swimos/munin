@@ -1,8 +1,8 @@
 package swim.munin.filethesebirds.digest.answer;
 
-import swim.munin.filethesebirds.digest.Answer;
 import java.util.Set;
 import org.testng.annotations.Test;
+import swim.munin.filethesebirds.digest.Answer;
 import static org.testng.Assert.assertEquals;
 
 public class PublicationSpec {

@@ -14,11 +14,11 @@
 
 package swim.munin.filethesebirds.digest.motion;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
+import swim.json.Json;
 import swim.munin.filethesebirds.connect.ebird.EBirdApiException;
 import swim.munin.filethesebirds.connect.ebird.EBirdClient;
 import swim.munin.filethesebirds.digest.Motion;
-import org.apache.commons.text.similarity.LevenshteinDistance;
-import swim.json.Json;
 import swim.structure.Item;
 import swim.structure.Value;
 

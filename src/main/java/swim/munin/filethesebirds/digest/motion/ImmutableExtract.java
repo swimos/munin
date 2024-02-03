@@ -14,11 +14,11 @@
 
 package swim.munin.filethesebirds.digest.motion;
 
-import swim.munin.filethesebirds.digest.Motion;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
+import swim.munin.filethesebirds.digest.Motion;
 
 class ImmutableExtract implements Extract {
 

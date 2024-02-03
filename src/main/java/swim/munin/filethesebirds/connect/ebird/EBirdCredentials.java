@@ -14,9 +14,9 @@
 
 package swim.munin.filethesebirds.connect.ebird;
 
-import swim.munin.Utils;
 import java.io.InputStream;
 import java.util.Properties;
+import swim.munin.Utils;
 
 public class EBirdCredentials {
 

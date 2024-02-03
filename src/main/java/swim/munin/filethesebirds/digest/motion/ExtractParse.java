@@ -14,10 +14,6 @@
 
 package swim.munin.filethesebirds.digest.motion;
 
-import swim.munin.connect.reddit.Comment;
-import swim.munin.filethesebirds.digest.Taxonomy;
-import swim.munin.filethesebirds.digest.Users;
-import swim.munin.filethesebirds.digest.motion.commonmark.HintExtension;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +21,10 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.commonmark.ext.autolink.AutolinkExtension;
 import org.commonmark.parser.Parser;
+import swim.munin.connect.reddit.Comment;
+import swim.munin.filethesebirds.digest.Taxonomy;
+import swim.munin.filethesebirds.digest.Users;
+import swim.munin.filethesebirds.digest.motion.commonmark.HintExtension;
 
 public class ExtractParse {
 

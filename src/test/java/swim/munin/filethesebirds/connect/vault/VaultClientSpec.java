@@ -1,10 +1,10 @@
 package swim.munin.filethesebirds.connect.vault;
 
-import swim.munin.filethesebirds.digest.Forms;
-import swim.munin.connect.reddit.Submission;
-import swim.munin.Utils;
 import java.util.List;
 import org.testng.annotations.Test;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Submission;
+import swim.munin.filethesebirds.digest.Forms;
 import swim.recon.Recon;
 import swim.structure.Value;
 
