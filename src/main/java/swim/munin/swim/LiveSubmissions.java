@@ -92,7 +92,11 @@ public final class LiveSubmissions {
   }
 
   public Set<String> expire(AbstractAgent runtime) {
-    final long then = System.currentTimeMillis() / 1000L - this.lookbackSeconds;
+    return expire(runtime, this.lookbackSeconds);
+  }
+
+  public Set<String> expire(AbstractAgent runtime, long lookbackSeconds) {
+    final long then = System.currentTimeMillis() / 1000L - lookbackSeconds;
     final Set<String> result = new HashSet<>();
     for (Iterator<Map.Entry<Long, Submission>> itr = this.active.entrySet().iterator();
          itr.hasNext(); ) {

@@ -12,17 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package swim.munin.swim;
+package swim.munin.primitive.swim;
 
 import swim.munin.MuninEnvironment;
 import swim.munin.connect.reddit.RedditClient;
+import swim.munin.swim.AbstractSubmissionsAgent;
+import swim.munin.swim.LiveSubmissions;
+import swim.munin.swim.Logic;
 
-public interface MuninAgent {
+public class SubmissionsAgent extends AbstractSubmissionsAgent {
 
-  MuninEnvironment environment();
+  @Override
+  public MuninEnvironment environment() {
+    return Shared.muninEnvironment();
+  }
 
-  LiveSubmissions liveSubmissions();
+  @Override
+  public LiveSubmissions liveSubmissions() {
+    return Shared.liveSubmissions();
+  }
 
-  RedditClient redditClient();
+  @Override
+  public RedditClient redditClient() {
+    return Shared.redditClient();
+  }
+
+  @Override
+  public void didStart() {
+    Logic.info(this, "didStart()", ""); // Don't cue timer
+  }
 
 }

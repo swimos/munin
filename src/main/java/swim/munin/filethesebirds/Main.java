@@ -25,13 +25,13 @@ import swim.server.ServerLoader;
 public final class Main {
 
   public static void main(String[] args) {
-    loadSingletons();
+    loadEnvAndClients();
     final WarpRef swim = startSwimServer();
     coalesce(swim);
     // Park main thread while Swim server runs asynchronously
   }
 
-  private static void loadSingletons() {
+  private static void loadEnvAndClients() {
     Shared.loadMuninEnvironment();
     Shared.loadVaultClient();
     Shared.loadEBirdClient();
@@ -49,7 +49,7 @@ public final class Main {
   }
 
   private static void coalesce(WarpRef swim) {
-    final Coalescence coalesce = Coalescence.coalesce(Shared.muninEnvironment(), swim);
+    final Coalescence coalesce = Coalescence.coalesce(Shared.muninEnvironment(), Shared.redditClient(), swim);
     Shared.loadLiveSubmissions(coalesce);
     coalesce.startSubmissionAgents();
     coalesce.startFetchTasks();

@@ -14,6 +14,35 @@
 
 package swim.munin.primitive;
 
+import java.io.IOException;
+import swim.api.plane.PlaneContext;
+import swim.kernel.Kernel;
+import swim.munin.primitive.swim.Shared;
+import swim.munin.swim.ReadOnlyPolicy;
+import swim.server.ServerLoader;
+
 public final class Main {
+
+  public static void main(String[] args) throws IOException {
+    System.setProperty("swim.config", "primitive/server.recon");
+    loadSingletons();
+    startSwimServer();
+    // Park main thread while Swim server runs asynchronously
+  }
+
+  private static void loadSingletons() throws IOException {
+    Shared.loadMuninEnvironment();
+    Shared.loadLiveSubmissions();
+    Shared.loadRedditClient();
+  }
+
+  private static void startSwimServer() {
+    final Kernel kernel = ServerLoader.loadServer();
+    final PlaneContext plane = (PlaneContext) kernel.getSpace("munin");
+    kernel.start();
+    plane.setPolicy(new ReadOnlyPolicy());
+    System.out.println("[INFO] Running munin...");
+    kernel.run();
+  }
 
 }

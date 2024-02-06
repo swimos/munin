@@ -207,7 +207,8 @@ final class PublishingAgentLogic {
           subId36 = Utils.id10To36(subId10);
       deleteQueue.remove(commentId10);
       Logic.info(runtime, "throttleTimer", "Will asynchronously delete comment " + subId36 + "/" + commentId36);
-      Logic.executeRedditDelete(runtime, "throttleTimer", client -> client.removeEditDel("t1_" + commentId36));
+      Logic.executeRedditDelete(runtime, "throttleTimer", runtime.redditClient(),
+          client -> client.removeEditDel("t1_" + commentId36));
       return true;
     }
     return false;
@@ -246,7 +247,7 @@ final class PublishingAgentLogic {
       Logic.info(runtime, "throttleTimer", "Will asynchronously edit comment "
           + subId36  + "/" + commentId36
           + " answer to " + toPublishAnswer);
-      Logic.executeRedditCallable(runtime, "throttleTimer", "editComment",
+      Logic.executeRedditCallable(runtime, "throttleTimer", "editComment", runtime.redditClient(),
           client -> client.publishEditEditusertext("t1_" + commentId36, Publication.publicationFromAnswer(toPublishAnswer)),
           r -> onPublishResponse(runtime, subId10, r, c -> Logic.info(runtime, "throttleTimer (blocker)", "Successfully edited comment to " + c)));
       return true;
@@ -258,7 +259,7 @@ final class PublishingAgentLogic {
     final String subId36 = Utils.id10To36(subId10);
     Logic.info(runtime, "throttleTimer", "Will asynchronously create comment to submission "
         + subId36  + " with answer " + toPublishAnswer);
-    Logic.executeRedditCallable(runtime, "throttleTimer", "createComment",
+    Logic.executeRedditCallable(runtime, "throttleTimer", "createComment", runtime.redditClient(),
         client -> client.publishAnyComment("t3_" + Utils.id10To36(subId10), Publication.publicationFromAnswer(toPublishAnswer)),
         r -> onPublishResponse(runtime, subId10, r, c -> Logic.info(runtime, "throttleTimer (blocker)", "Successfully created comment " + c)));
   }

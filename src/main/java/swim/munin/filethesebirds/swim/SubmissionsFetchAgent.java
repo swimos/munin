@@ -16,6 +16,7 @@ package swim.munin.filethesebirds.swim;
 
 import swim.concurrent.TimerRef;
 import swim.munin.MuninEnvironment;
+import swim.munin.connect.reddit.RedditClient;
 import swim.munin.swim.AbstractSubmissionsFetchAgent;
 import swim.munin.swim.LiveSubmissions;
 import swim.munin.swim.Logic;
@@ -60,18 +61,25 @@ public class SubmissionsFetchAgent extends AbstractSubmissionsFetchAgent {
   }
 
   @Override
+  public RedditClient redditClient() {
+    return Shared.redditClient();
+  }
+
+  @Override
   protected void fetchTimerAction() {
     final RunResult run = SubmissionsFetchLogic.doRun(this, environment(), liveSubmissions());
     if (!run.live().isEmpty()) {
       Logic.doOrLogVaultAction(this, "[GatherSubmissionsTask]",
           "Will upsert " + run.live().size() + " submissions into vault",
           "Failed to upsert submissions",
+          Shared.vaultClient(),
           client -> client.upsertSubmissions(run.live().values()));
     }
     if (!run.didShelve().isEmpty()) {
       Logic.doOrLogVaultAction(this, "[GatherSubmissionsTask]",
           "Will remove submissions with IDs " + run.didShelve() + " from vault",
           "Failed to remove submissions from vault",
+          Shared.vaultClient(),
           client -> client.deleteSubmissions36(run.didShelve()));
     }
   }

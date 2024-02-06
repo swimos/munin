@@ -35,19 +35,22 @@ public class Comment {
   private final String author;
   private final String body;
   private final String submissionAuthor;
+  private final int numComments;
 
   public Comment(String id, long createdUtc, String submissionId,
-                 String author, String body, String submissionAuthor) {
+                 String author, String body, String submissionAuthor,
+                 int numComments) {
     this.id = id;
     this.createdUtc = createdUtc;
     this.submissionId = submissionId;
     this.author = author;
     this.body = body;
     this.submissionAuthor = submissionAuthor;
+    this.numComments = numComments;
   }
 
   private Comment() {
-    this("", -1L, "", "", "", "");
+    this("", -1L, "", "", "", "", -1);
   }
 
   public String id() {
@@ -72,6 +75,10 @@ public class Comment {
 
   public String submissionAuthor() {
     return this.submissionAuthor;
+  }
+
+  public int numComments() {
+    return this.numComments;
   }
 
   @Override
@@ -129,7 +136,8 @@ public class Comment {
         author = extractField(data, essence, "author", Value::stringValue).toLowerCase(Locale.ROOT),
         body = extractField(data, essence, "body", Value::stringValue),
         submissionAuthor = extractField(data, essence, "link_author", v -> v.stringValue("").toLowerCase(Locale.ROOT));
-    return new Comment(id, createdUtc, submissionId, author, body, submissionAuthor);
+    final int numComments = extractField(data, essence, "num_comments", v -> v.intValue(-1));
+    return new Comment(id, createdUtc, submissionId, author, body, submissionAuthor, numComments);
   }
 
   private static class CommentsRedditResponse

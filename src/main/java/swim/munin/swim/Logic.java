@@ -28,7 +28,6 @@ import swim.munin.connect.reddit.ConcurrentTokenRefreshException;
 import swim.munin.connect.reddit.RedditClient;
 import swim.munin.connect.reddit.RedditResponse;
 import swim.munin.filethesebirds.connect.vault.VaultClient;
-import swim.munin.filethesebirds.swim.Shared;
 
 /**
  * Utility class containing application-level convenience methods regarding a
@@ -140,18 +139,20 @@ public final class Logic {
   // External client calls
   // ===========================================================================
 
-  public static <V> Optional<RedditResponse<V>> doRedditCallable(AbstractAgent runtime, String caller, String actionName,
-                                                          RedditClient.Callable<V> action) {
-    return doRedditCallable(runtime, caller, actionName, action,
+  public static <V> Optional<RedditResponse<V>>
+  doRedditCallable(AbstractAgent runtime, String caller, String actionName,
+                   RedditClient client, RedditClient.Callable<V> action) {
+    return doRedditCallable(runtime, caller, actionName, client, action,
         e -> error(runtime, caller, "(Reddit " + actionName + ") " + formatStatusCodeExceptionMsg("", e)));
   }
 
   public static <V> Optional<RedditResponse<V>>
-  doRedditCallable(AbstractAgent runtime, String caller, String actionName, RedditClient.Callable<V> action,
+  doRedditCallable(AbstractAgent runtime, String caller, String actionName,
+                   RedditClient client, RedditClient.Callable<V> action,
                    Consumer<StatusCodeException> onStatusCodeException) {
     debug(runtime, caller, "Will perform Reddit " + actionName);
     try {
-      return Optional.of(action.call(Shared.redditClient()));
+      return Optional.of(action.call(client));
     } catch (ConcurrentTokenRefreshException e) {
       error(runtime, caller, "(Reddit " + actionName + ") Lost token fetch race");
     } catch (StatusCodeException e) {
@@ -168,21 +169,22 @@ public final class Logic {
   }
 
   public static <V> void executeRedditCallable(AbstractAgent runtime, String caller, String actionName,
-                                       RedditClient.Callable<V> action) {
-    executeBlocker(runtime, caller, () -> doRedditCallable(runtime, caller, actionName, action));
+                                               RedditClient client, RedditClient.Callable<V> action) {
+    executeBlocker(runtime, caller, () -> doRedditCallable(runtime, caller, actionName, client, action));
   }
 
   public static <V> void executeRedditCallable(AbstractAgent runtime, String caller, String actionName,
-                                        RedditClient.Callable<V> action,
-                                        Consumer<RedditResponse<V>> ifPresent) {
-    executeBlocker(runtime, caller, () -> doRedditCallable(runtime, caller, actionName, action)
+                                               RedditClient client, RedditClient.Callable<V> action,
+                                               Consumer<RedditResponse<V>> ifPresent) {
+    executeBlocker(runtime, caller, () -> doRedditCallable(runtime, caller, actionName, client, action)
         .ifPresent(ifPresent));
   }
 
-  public static <V> Optional<RedditResponse<V>> doRedditCallable(String actionName, RedditClient.Callable<V> action) {
+  public static <V> Optional<RedditResponse<V>>
+  doRedditCallable(String actionName, RedditClient client, RedditClient.Callable<V> action) {
     System.out.println("[DEBUG] Will perform Reddit " + actionName);
     try {
-      return Optional.of(action.call(Shared.redditClient()));
+      return Optional.of(action.call(client));
     } catch (StatusCodeException e) {
       System.out.println("[ERROR] " + "(Reddit " + actionName + ") " + formatStatusCodeExceptionMsg("", e));
     } catch (HttpConnectException e) {
@@ -196,15 +198,17 @@ public final class Logic {
     return Optional.empty();
   }
 
-  public static Optional<RedditResponse<Void>> doRedditDelete(AbstractAgent runtime, String caller,
-                                                       RedditClient.Callable<Void> action) {
+  public static Optional<RedditResponse<Void>>
+  doRedditDelete(AbstractAgent runtime, String caller,
+                 RedditClient client, RedditClient.Callable<Void> action) {
     // FIXME: Reddit responds with 200 even when it should throw 404.
     //   If it ever changes to throw 404, add a custom onStatusCodeException arg to the call below
-    return doRedditCallable(runtime, caller, "deleteComment", action);
+    return doRedditCallable(runtime, caller, "deleteComment", client, action);
   }
 
-  public static void executeRedditDelete(AbstractAgent runtime, String caller, RedditClient.Callable<Void> action) {
-    executeBlocker(runtime, caller, () -> doRedditDelete(runtime, caller, action));
+  public static void executeRedditDelete(AbstractAgent runtime, String caller,
+                                         RedditClient client, RedditClient.Callable<Void> action) {
+    executeBlocker(runtime, caller, () -> doRedditDelete(runtime, caller, client, action));
   }
 
   private static String formatStatusCodeExceptionMsg(String prefix, StatusCodeException e) {
@@ -213,11 +217,11 @@ public final class Logic {
   }
 
   public static void doOrLogVaultAction(AbstractAgent runtime, String caller,
-                                 String infoMsg, String failureMsg,
-                                 Consumer<VaultClient> action) {
+                                        String infoMsg, String failureMsg,
+                                        VaultClient client, Consumer<VaultClient> action) {
     info(runtime, caller, infoMsg);
     try {
-      action.accept(Shared.vaultClient());
+      action.accept(client);
     } catch (Exception e) {
       error(runtime, caller, failureMsg);
       new Exception(runtime.nodeUri() + ": " + failureMsg, e)
@@ -228,8 +232,8 @@ public final class Logic {
 
   public static void executeOrLogVaultAction(AbstractAgent runtime, String caller,
                                       String infoMsg, String failureMsg,
-                                      Consumer<VaultClient> action) {
-    executeBlocker(runtime, caller, () -> doOrLogVaultAction(runtime, caller, infoMsg, failureMsg, action));
+                                      VaultClient client, Consumer<VaultClient> action) {
+    executeBlocker(runtime, caller, () -> doOrLogVaultAction(runtime, caller, infoMsg, failureMsg, client, action));
   }
 
 }

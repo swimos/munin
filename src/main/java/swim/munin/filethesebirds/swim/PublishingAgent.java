@@ -20,6 +20,7 @@ import swim.api.lane.JoinValueLane;
 import swim.api.lane.MapLane;
 import swim.munin.MuninEnvironment;
 import swim.munin.connect.reddit.Comment;
+import swim.munin.connect.reddit.RedditClient;
 import swim.munin.filethesebirds.digest.Answer;
 import swim.munin.filethesebirds.digest.Forms;
 import swim.munin.swim.AbstractPublishingAgent;
@@ -103,6 +104,11 @@ public class PublishingAgent extends AbstractPublishingAgent<Answer> {
   @Override
   public LiveSubmissions liveSubmissions() {
     return Shared.liveSubmissions();
+  }
+
+  @Override
+  public RedditClient redditClient() {
+    return Shared.redditClient();
   }
 
   @Override

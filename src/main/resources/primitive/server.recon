@@ -1,0 +1,26 @@
+@kernel(class: 'swim.munin.swim.MuninLogKernel', level: 'debug')
+
+munin: @fabric {
+  # Default plane is sufficient, but ensure to configure policy in code
+  @plane(class: "swim.api.plane.AbstractPlane")
+
+  # Singleton Web Agent with multiple traits
+  @node {
+    uri: "/submissions"
+    @agent(class: "swim.munin.primitive.swim.SubmissionsAgent")
+    @agent(class: "swim.munin.primitive.swim.CommentsFetchAgent")
+    # Implemenations skipped for simplicity
+    # @agent(class: "swim.munin.primitive.swim.SubmissionsFetchAgent")
+    # @agent(class: "swim.munin.primitive.swim.PublishingAgent")
+  }
+
+  # Dynamically instantiable Web Agent type with single trait
+  @node {
+    pattern: "/submission/:id"
+    @agent(class: "swim.munin.primitive.swim.SubmissionAgent")
+  }
+}
+
+@web(port: 9001) {
+  space: "munin"
+}

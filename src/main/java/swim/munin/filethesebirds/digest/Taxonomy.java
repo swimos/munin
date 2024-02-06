@@ -26,9 +26,9 @@ public final class Taxonomy {
   private static final Map<String, String[]> TAXONOMY = new HashMap<>(32000);
   static {
     try (InputStream is = Utils.openConfigFile(System.getProperty("taxonomy.conf"),
-            "/ebird-taxa.csv");
-        InputStreamReader isr = new InputStreamReader(is);
-        BufferedReader br = new BufferedReader(isr)) {
+        "/filethesebirds/ebird-taxa.csv");
+         InputStreamReader isr = new InputStreamReader(is);
+         BufferedReader br = new BufferedReader(isr)) {
       String line;
       while ((line = br.readLine()) != null) {
         final String[] split = line.split(",");

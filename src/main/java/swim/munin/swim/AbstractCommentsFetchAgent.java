@@ -65,7 +65,7 @@ public abstract class AbstractCommentsFetchAgent extends AbstractAgent
     }
     if (this.afterId10 > 0) {
       this.fetchTimer = Logic.scheduleRecurringBlocker(this, caller, this::fetchTimer,
-          1000L, 60000L, this::fetchTimerAction);
+          1000L, environment().commentsFetchPeriodMillis(), this::fetchTimerAction);
     } else {
       Logic.error(this, caller, "Timer did not fire due to invalid initial conditions");
     }
@@ -73,7 +73,7 @@ public abstract class AbstractCommentsFetchAgent extends AbstractAgent
   }
 
   protected void fetchTimerAction() {
-    CommentsFetchLogic.gatherComments(this);
+    CommentsFetchLogic.gatherNewComments(this);
   }
 
   protected void onIdleResponse() {

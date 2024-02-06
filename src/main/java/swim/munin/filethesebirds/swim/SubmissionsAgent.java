@@ -25,10 +25,10 @@ import swim.http.HttpStatus;
 import swim.http.MediaType;
 import swim.munin.MuninEnvironment;
 import swim.munin.Utils;
+import swim.munin.connect.reddit.RedditClient;
 import swim.munin.swim.AbstractSubmissionsAgent;
 import swim.munin.swim.LiveSubmissions;
 import swim.munin.swim.Logic;
-import swim.structure.Text;
 import swim.structure.Value;
 
 /**
@@ -79,6 +79,11 @@ public class SubmissionsAgent extends AbstractSubmissionsAgent {
     return Shared.liveSubmissions();
   }
 
+  @Override
+  public RedditClient redditClient() {
+    return Shared.redditClient();
+  }
+
   protected void statusesDidUpdate(long k, Value n, Value o) {
     AgentLogic.statusesDidUpdate(this, k, n, o);
   }
@@ -105,16 +110,6 @@ public class SubmissionsAgent extends AbstractSubmissionsAgent {
 
   HttpResponse<?> reviewedApiDoRespond(HttpRequest<Value> request) {
     return AgentLogic.reviewedApiDoRespond(this, request);
-  }
-
-  @Override
-  public void didStart() {
-    AgentLogic.didStart(this);
-  }
-
-  @Override
-  public void willClose() {
-    AgentLogic.willClose(this);
   }
 
   private static final class AgentLogic {
@@ -221,38 +216,6 @@ public class SubmissionsAgent extends AbstractSubmissionsAgent {
       }
       final String toString = url.toString();
       return String.format("<li><a href=%s>link %d</a>", toString, linkId);
-    }
-
-    static void didStart(SubmissionsAgent runtime) {
-      Logic.info(runtime, "didStart()", "");
-      final long period = runtime.environment().submissionsExpiryCheckPeriodMillis();
-      Logic.debug(runtime, "didStart()", "Scheduling timer tick for " + period + " ms");
-      if (runtime.expiryTimer != null) {
-        Logic.debug(runtime, "didStart()", "Canceling expiryTimer");
-        runtime.expiryTimer.cancel();
-        runtime.expiryTimer = null;
-      }
-      runtime.expiryTimer = runtime.setTimer(period, () -> {
-        Logic.trace(runtime, "[expiryTimer]", "Tick");
-        final long now = System.currentTimeMillis();
-        Shared.liveSubmissions().expire(runtime)
-            .forEach(id36 -> {
-              Logic.debug(runtime, "[expiryTimer]", "Notifying /submission/" + id36 + " of expiry");
-              runtime.command("/submission/" + id36, "expire", Text.from("expire"));
-            });
-        final long delta = now + period - System.currentTimeMillis();
-        Logic.debug(runtime, "[expiryTimer]", "Scheduling timer tick for " + delta + " ms");
-        runtime.expiryTimer.reschedule(Math.max(1000L, delta));
-      });
-    }
-
-    static void willClose(SubmissionsAgent runtime) {
-      Logic.info(runtime, "willClose()", "");
-      if (runtime.expiryTimer != null) {
-        Logic.debug(runtime, "willClose()", "Canceling expiryTimer");
-        runtime.expiryTimer.cancel();
-        runtime.expiryTimer = null;
-      }
     }
 
   }

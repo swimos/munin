@@ -1,3 +1,17 @@
+// Copyright 2015-2023 Swim.inc
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package swim.munin.swim;
 
 import java.util.ArrayList;
@@ -14,23 +28,25 @@ import swim.structure.Text;
 
 public final class CommentsFetchLogic {
 
-  public static Comment coalesceComments(long until, long boundaryId10, Map<String, Submission> active,
+  public static Comment coalesceComments(long until, RedditClient redditClient,
+                                         long boundaryId10, Map<String, Submission> active,
                                          Map<String, List<Comment>> batches, Map<String, Integer> counts,
                                          Map<String, Long> shelved) {
-    return coalesceComments(until, boundaryId10, active, batches, counts, shelved,
+    return coalesceComments(until, redditClient, boundaryId10, active, batches, counts, shelved,
         CommentsFetchLogic::submissionAuthorIsDeleted);
   }
 
-  public static Comment coalesceComments(long until, long boundaryId10, Map<String, Submission> active,
+  public static Comment coalesceComments(long until, RedditClient redditClient,
+                                         long boundaryId10, Map<String, Submission> active,
                                          Map<String, List<Comment>> batches, Map<String, Integer> counts,
                                          Map<String, Long> shelved, Function<Comment, Boolean> commentIsRemover) {
-    final GatherCoalesceTask task = new GatherCoalesceTask(until, boundaryId10, active, batches, counts, shelved, commentIsRemover);
+    final GatherCoalesceTask task = new GatherCoalesceTask(until, redditClient, boundaryId10, active, batches, counts, shelved, commentIsRemover);
     task.run();
     return task.bookmark;
   }
 
-  public static void gatherComments(AbstractCommentsFetchAgent runtime) {
-    new GatherAgentTask(runtime).run();
+  public static void gatherNewComments(AbstractCommentsFetchAgent runtime) {
+    new GatherUntilAgentTask(runtime).run();
   }
 
   static boolean submissionAuthorIsDeleted(Comment comment) {
@@ -41,7 +57,7 @@ public final class CommentsFetchLogic {
    * A short-lived task that may use multiple consecutive Reddit API calls to
    * gather all comments to a subreddit that are newer than a provided bookmark.
    */
-  private static class GatherAgentTask {
+  private static class GatherUntilAgentTask {
 
     private static final String CALLER_TASK = "[GatherCommentsTask]";
     private static final Text PREEMPT_SUBMISSIONS_FETCH_PAYLOAD = Text.from("preempt");
@@ -50,7 +66,7 @@ public final class CommentsFetchLogic {
     private final long oldBookmarkId10;
     private long newBookmarkId10;
 
-    private GatherAgentTask(AbstractCommentsFetchAgent runtime) {
+    private GatherUntilAgentTask(AbstractCommentsFetchAgent runtime) {
       this.runtime = runtime;
       this.oldBookmarkId10 = runtime.afterId10;
       this.newBookmarkId10 = this.oldBookmarkId10;
@@ -65,7 +81,7 @@ public final class CommentsFetchLogic {
     }
 
     private void gatherComments(RedditClient.Callable<Comment[]> action) {
-      Logic.doRedditCallable(this.runtime, CALLER_TASK, "getNewComments", action)
+      Logic.doRedditCallable(this.runtime, CALLER_TASK, "getNewComments", runtime.redditClient(), action)
           .flatMap(response -> processBatch(response.essence()))
           .ifPresent(fullname -> gatherComments(client -> client.fetchUndocumentedCommentsAfter(fullname)));
     }
@@ -82,7 +98,8 @@ public final class CommentsFetchLogic {
       }
       int result = 0;
       for (Comment c : batch) {
-        if (processComment(c, result) == 1) {
+        result = processComment(c, result);
+        if (result == 1) {
           return Optional.empty();
         }
       }
@@ -136,11 +153,13 @@ public final class CommentsFetchLogic {
       }
       return subId10 > lower10;
     }
+
   }
 
   private static class GatherCoalesceTask {
 
     private final long until;
+    private final RedditClient redditClient;
     private final long boundaryId10;
     private final Map<String, Submission> active;
     private final Map<String, List<Comment>> batches;
@@ -149,10 +168,12 @@ public final class CommentsFetchLogic {
     private final Function<Comment, Boolean> commentIsRemover;
     private Comment bookmark;
 
-    private GatherCoalesceTask(long until, long boundaryId10, Map<String, Submission> active,
+    private GatherCoalesceTask(long until, RedditClient redditClient,
+                               long boundaryId10, Map<String, Submission> active,
                                Map<String, List<Comment>> batches, Map<String, Integer> counts,
                                Map<String, Long> shelved, Function<Comment, Boolean> commentIsRemover) {
       this.until = until;
+      this.redditClient = redditClient;
       this.boundaryId10 = boundaryId10;
       this.active = active;
       this.batches = batches;
@@ -168,7 +189,7 @@ public final class CommentsFetchLogic {
 
     private void gatherComments(RedditClient.Callable<Comment[]> action) {
       System.out.println("[TRACE] Coalescence#commentsFetch: Issuing fetch request");
-      Logic.doRedditCallable("getNewComments", action)
+      Logic.doRedditCallable("getNewComments", this.redditClient, action)
           .flatMap(response -> processBatch(response.essence()))
           .ifPresent(id36 -> gatherComments(client -> client.fetchUndocumentedCommentsAfter(id36)));
     }

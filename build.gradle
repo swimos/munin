@@ -38,7 +38,7 @@ compileJava {
 }
 
 application {
-  mainClass = 'swim.munin.filethesebirds.Main'
+  mainClass = 'swim.munin.primitive.Main'
 }
 
 test {

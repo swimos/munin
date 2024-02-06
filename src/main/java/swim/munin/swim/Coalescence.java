@@ -24,16 +24,18 @@ import swim.api.ref.WarpRef;
 import swim.munin.MuninEnvironment;
 import swim.munin.Utils;
 import swim.munin.connect.reddit.Comment;
+import swim.munin.connect.reddit.RedditClient;
 import swim.munin.connect.reddit.Submission;
 import swim.structure.Form;
 import swim.structure.Text;
 
-public final class Coalescence {
+public class Coalescence {
 
   private static final Form<List<Comment>> FORM_LIST_COMMENT = Form.forList(Comment.form());
 
   private final long lookbackSeconds;
   private final long until;
+  private final RedditClient redditClient;
   private final Map<String, Submission> active;
   private final Map<String, List<Comment>> batches;
   private final Map<String, Integer> counts;
@@ -41,8 +43,9 @@ public final class Coalescence {
   private Comment bookmark = null;
   private final WarpRef swim;
 
-  private Coalescence(MuninEnvironment environment, WarpRef swim) {
+  private Coalescence(MuninEnvironment environment, RedditClient redditClient, WarpRef swim) {
     this.lookbackSeconds = environment.lookbackSeconds();
+    this.redditClient = redditClient;
     this.until = System.currentTimeMillis() / 1000L - this.lookbackSeconds;
     this.active = new HashMap<>(256);
     this.batches = new HashMap<>(256);
@@ -52,15 +55,15 @@ public final class Coalescence {
   }
 
   private long getSubmissions() {
-    final long boundary = SubmissionsFetchLogic.coalesceSubmissions(this.until, this.active, this.batches,
-        this.counts);
+    final long boundary = SubmissionsFetchLogic.coalesceSubmissions(this.until, this.redditClient,
+        this.active, this.batches, this.counts);
     System.out.println("[INFO] Coalescence#submissionsFetch: Identified " + this.active.size() + " active submissions");
     return boundary;
   }
 
   private Comment getComments(long boundaryId10) {
-    return CommentsFetchLogic.coalesceComments(this.until, boundaryId10, this.active,
-        this.batches, this.counts, this.shelved);
+    return CommentsFetchLogic.coalesceComments(this.until, this.redditClient, boundaryId10,
+        this.active, this.batches, this.counts, this.shelved);
   }
 
   private void logIncompleteSubmissions(long oldestCommentTimestamp) {
@@ -103,8 +106,9 @@ public final class Coalescence {
     swim.command("/submissions", "preemptCommentsFetch", Comment.form().mold(this.bookmark).toValue());
   }
 
-  public static Coalescence coalesce(MuninEnvironment environment, WarpRef swim) {
-    final Coalescence coalesce = new Coalescence(environment, swim);
+  public static Coalescence coalesce(MuninEnvironment environment, RedditClient redditClient,
+                                     WarpRef swim) {
+    final Coalescence coalesce = new Coalescence(environment, redditClient, swim);
     final long boundary = coalesce.getSubmissions();
     coalesce.bookmark = coalesce.getComments(boundary);
     coalesce.logIncompleteSubmissions(coalesce.bookmark.createdUtc());

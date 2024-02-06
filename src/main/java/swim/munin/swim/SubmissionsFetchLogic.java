@@ -85,7 +85,7 @@ public final class SubmissionsFetchLogic {
 
   private static void shelve(AbstractSubmissionsFetchAgent runtime, LiveSubmissions liveSubmissions,
                              String candidates, Set<String> didShelve) {
-    Logic.doRedditCallable(runtime, CALLER_TASK, "getById", client -> client.fetchReadById(candidates))
+    Logic.doRedditCallable(runtime, CALLER_TASK, "getById", runtime.redditClient(), client -> client.fetchReadById(candidates))
         .ifPresent(response -> {
           int i = 0;
           final Submission[] essence = response.essence();
@@ -116,13 +116,14 @@ public final class SubmissionsFetchLogic {
     return 0;
   }
 
-  public static long coalesceSubmissions(long until, Map<String, Submission> active,
-                                  Map<String, List<Comment>> batches, Map<String, Integer> counts) {
+  public static long coalesceSubmissions(long until, RedditClient redditClient,
+                                         Map<String, Submission> active, Map<String, List<Comment>> batches,
+                                         Map<String, Integer> counts) {
     System.out.println("[TRACE] Coalescence#submissionsFetch: Begin coalesceSubmissions");
     if (!active.isEmpty() || !counts.isEmpty()) {
       throw new IllegalArgumentException("coalescenceSubmission args must be empty");
     }
-    final GatherCoalesceTask task = new GatherCoalesceTask(until, active, batches, counts);
+    final GatherCoalesceTask task = new GatherCoalesceTask(until, redditClient, active, batches, counts);
     task.run();
     return task.boundaryId;
   }
@@ -212,8 +213,7 @@ public final class SubmissionsFetchLogic {
 
     @Override
     Optional<RedditResponse<Submission[]>> doFetch(RedditClient.Callable<Submission[]> callable) {
-      return Logic.doRedditCallable(this.runtime, CALLER_TASK, "getNewPosts",
-          callable);
+      return Logic.doRedditCallable(this.runtime, CALLER_TASK, "getNewPosts", runtime.redditClient(), callable);
     }
 
     @Override
@@ -224,6 +224,9 @@ public final class SubmissionsFetchLogic {
     @Override
     void run() {
       super.run();
+      if (this.active.size() > 900) {
+        Logic.warn(this.runtime, CALLER_TASK, "Potentially missed some comments due to API restrictions");
+      }
       this.shelfCandidates.entrySet().removeIf(e -> e.getValue().createdUtc() <= this.until);
     }
 
@@ -246,14 +249,17 @@ public final class SubmissionsFetchLogic {
    */
   public static class GatherCoalesceTask extends GatherTask {
 
+    private final RedditClient redditClient;
     private final Map<String, Submission> active;
     private final Map<String, List<Comment>> batches;
     private final Map<String, Integer> counts;
     private long boundaryId;
 
-    private GatherCoalesceTask(long until, Map<String, Submission> active,
-                               Map<String, List<Comment>> batches, Map<String, Integer> counts) {
+    private GatherCoalesceTask(long until, RedditClient redditClient,
+                               Map<String, Submission> active, Map<String, List<Comment>> batches,
+                               Map<String, Integer> counts) {
       super(until);
+      this.redditClient = redditClient;
       this.active = active;
       this.batches = batches;
       this.counts = counts;
@@ -262,7 +268,7 @@ public final class SubmissionsFetchLogic {
 
     @Override
     Optional<RedditResponse<Submission[]>> doFetch(RedditClient.Callable<Submission[]> callable) {
-      return Logic.doRedditCallable("getNewPosts", callable);
+      return Logic.doRedditCallable("getNewPosts", this.redditClient, callable);
     }
 
     @Override

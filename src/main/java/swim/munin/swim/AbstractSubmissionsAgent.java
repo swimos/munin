@@ -30,18 +30,13 @@ import swim.structure.Value;
  *
  * <p>By default, each {@code AbstractSubmissionsAgent} modifies a {@code
  * LiveSubmissions} instance only by expiring posts that exceed a certain age;
- * it periodically checks for this by using {@link #expiryTimer}.
+ * it periodically checks for such posts by using {@link #expiryTimer}.
  */
 public abstract class AbstractSubmissionsAgent extends AbstractAgent
     implements MuninAgent {
 
-  private static final long EXPIRY_TICK_PERIOD_MS = 15L * 60 * 1000;
-
   protected TimerRef expiryTimer;
 
-  /**
-   *
-   */
   @SwimLane("statuses")
   protected final JoinValueLane<Long, Value> statuses = joinValueLane()
       .keyForm(Form.forLong())
@@ -95,13 +90,18 @@ public abstract class AbstractSubmissionsAgent extends AbstractAgent
   @Override
   public void didStart() {
     Logic.info(this, "didStart()", "");
-    Logic.debug(this, "didStart()", "Scheduling timer tick for " + EXPIRY_TICK_PERIOD_MS + " ms");
+    resetExpiryTimer();
+  }
+
+  private void resetExpiryTimer() {
     if (this.expiryTimer != null) {
       Logic.debug(this, "didStart()", "Canceling expiryTimer");
       this.expiryTimer.cancel();
       this.expiryTimer = null;
     }
-    this.expiryTimer = setTimer(EXPIRY_TICK_PERIOD_MS, () -> {
+    final long tickMillis = environment().submissionsExpiryCheckPeriodMillis();
+    Logic.debug(this, "didStart()", "Scheduling timer tick for " + tickMillis + " ms");
+    this.expiryTimer = setTimer(tickMillis, () -> {
       Logic.trace(this, "[expiryTimer]", "Tick");
       final long now = System.currentTimeMillis();
       liveSubmissions().expire(this)
@@ -109,7 +109,7 @@ public abstract class AbstractSubmissionsAgent extends AbstractAgent
             Logic.debug(this, "[expiryTimer]", "Notifying /submission/" + id36 + " of expiry");
             command("/submission/" + id36, "expire", Text.from("expire"));
           });
-      final long delta = now + EXPIRY_TICK_PERIOD_MS - System.currentTimeMillis();
+      final long delta = now + tickMillis - System.currentTimeMillis();
       Logic.debug(this, "[expiryTimer]", "Scheduling timer tick for " + delta + " ms");
       this.expiryTimer.reschedule(Math.max(1000L, delta));
     });

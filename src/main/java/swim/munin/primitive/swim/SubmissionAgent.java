@@ -12,20 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package swim.munin.filethesebirds.swim;
+package swim.munin.primitive.swim;
 
 import swim.munin.MuninEnvironment;
+import swim.munin.Utils;
+import swim.munin.connect.reddit.Comment;
 import swim.munin.connect.reddit.RedditClient;
-import swim.munin.filethesebirds.digest.motion.HintCache;
-import swim.munin.swim.AbstractCommentsFetchAgent;
+import swim.munin.swim.AbstractSubmissionAgent;
 import swim.munin.swim.LiveSubmissions;
-import swim.munin.swim.Logic;
+import swim.structure.Value;
 
-/**
- * A Web Agent that fetches new comments to r/WhatsThisBird and routes them for
- * processing by appropriate {@link SubmissionAgent SubmissionAgents}.
- */
-public class CommentsFetchAgent extends AbstractCommentsFetchAgent {
+public class SubmissionAgent extends AbstractSubmissionAgent {
 
   @Override
   public MuninEnvironment environment() {
@@ -43,12 +40,24 @@ public class CommentsFetchAgent extends AbstractCommentsFetchAgent {
   }
 
   @Override
-  protected void onIdleResponse() {
-    // Might as well do something, sometimes, if we expect idleness
-    if (Math.random() < .2) {
-      Logic.debug(this, "fetchTimer", "Will cue HintCache prune");
-      HintCache.prune();
+  protected boolean onNewComment(String caller, Comment c) {
+    final boolean result = super.onNewComment(caller, c);
+    if (result && commentIsLatest(this.status.get(), c)) {
+      this.status.set(Comment.form().mold(c).toValue());
     }
+    return result;
+  }
+
+  private static boolean commentIsLatest(Value prevStatus, Comment c) {
+    if (!prevStatus.isDistinct()) {
+      return true;
+    }
+    return Utils.id36To10(c.id()) > Utils.id36To10(prevStatus.get("id").stringValue("0"));
+  }
+
+  @Override
+  protected void clearLanes() {
+    throw new UnsupportedOperationException("Implementation skips close logic for simplicity");
   }
 
 }

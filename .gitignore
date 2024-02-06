@@ -1,4 +1,3 @@
-credentials.txt
 *.csv
 *.DS_Store
 .gradle/

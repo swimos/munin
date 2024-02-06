@@ -25,6 +25,7 @@ import swim.concurrent.TaskRef;
 import swim.munin.MuninEnvironment;
 import swim.munin.Utils;
 import swim.munin.connect.reddit.Comment;
+import swim.munin.connect.reddit.RedditClient;
 import swim.munin.connect.reddit.Submission;
 import swim.munin.filethesebirds.connect.ebird.EBirdApiException;
 import swim.munin.filethesebirds.digest.Answer;
@@ -90,6 +91,11 @@ public class SubmissionAgent extends AbstractSubmissionAgent {
   }
 
   @Override
+  public RedditClient redditClient() {
+    return Shared.redditClient();
+  }
+
+  @Override
   protected void infoDidSet(Submission n, Submission o) {
     Logic.trace(this, "info", "Begin didSet(" + n + ", " + o + ")");
     if (n != null) {
@@ -104,7 +110,7 @@ public class SubmissionAgent extends AbstractSubmissionAgent {
     Logic.executeOrLogVaultAction(this, caller,
         "Will delete " + id10 + " from vault",
         "Failed to delete " + id10 + " from vault",
-        client -> client.deleteSubmission10(id10));
+        Shared.vaultClient(), client -> client.deleteSubmission10(id10));
   }
 
   @Override
@@ -121,7 +127,7 @@ public class SubmissionAgent extends AbstractSubmissionAgent {
     Logic.executeOrLogVaultAction(this, "answer",
         "Assigning observations " + n + " under " + getProp("id").stringValue(null),
         "Failed to assign observations",
-        client -> client.assignObservations(this.getProp("id").stringValue(), n));
+        Shared.vaultClient(), client -> client.assignObservations(this.getProp("id").stringValue(), n));
     Logic.trace(this, "answer", "End didSet()");
   }
 
@@ -189,7 +195,7 @@ public class SubmissionAgent extends AbstractSubmissionAgent {
         Logic.executeOrLogVaultAction(this, caller,
             "Deleting submission " + comment.submissionId(),
             "Failed to delete submission " + comment.submissionId(),
-            client -> client.deleteSubmission36(comment.submissionId()));
+            Shared.vaultClient(), client -> client.deleteSubmission36(comment.submissionId()));
       }
       return false;
     }

@@ -114,7 +114,7 @@ public class MuninEnvironment {
 
   public static MuninEnvironment fromProperties(Properties properties) {
     return new MuninEnvironment(
-        Utils.sanitizeSubreddit(System.getProperty("munin.subreddit", SUBREDDIT)),
+        Utils.sanitizeSubreddit(properties.getProperty("munin.subreddit", SUBREDDIT)),
         Math.max(intProperty(properties, "munin.lookback.hours", LOOKBACK_HOURS), 1),
         Math.max(intProperty(properties, "munin.comments.fetch.period.seconds", COMMENTS_FETCH_PERIOD_SECONDS), 15),
         Math.max(intProperty(properties, "munin.submissions.fetch.period.seconds", SUBMISSIONS_FETCH_PERIOD_SECONDS), 30),
