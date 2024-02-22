@@ -18,9 +18,11 @@ import filethesebirds.munin.Utils;
 import filethesebirds.munin.connect.reddit.RedditResponse;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
+import filethesebirds.munin.digest.Taxonomy;
 import filethesebirds.munin.digest.answer.Forms;
 import filethesebirds.munin.digest.answer.Publication;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import swim.structure.Attr;
 import swim.structure.Item;
@@ -263,6 +265,10 @@ final class PublishingAgentLogic {
     }
     final Value publishedData = runtime.publishedAnswers.get(subId10);
     final Answer publishedAnswer = Forms.forAnswer().cast(publishedData.get("answer"));
+    if (publishedAnswer == null) {
+      Logic.warn(runtime, "throttleTimer", "Surprising null for " + Utils.id10To36(subId10));
+      return false;
+    }
     if (!publishedAnswer.taxa().equals(toPublishAnswer.taxa())
         || !publishedAnswer.reviewers().equals(toPublishAnswer.reviewers())) {
       final long commentId10 = publishedData.get("id").longValue();

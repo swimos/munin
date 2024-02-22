@@ -28,6 +28,7 @@ import filethesebirds.munin.digest.motion.EBirdExtractPurify;
 import filethesebirds.munin.digest.motion.Extract;
 import filethesebirds.munin.digest.motion.ExtractParse;
 import filethesebirds.munin.digest.motion.Review;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -138,15 +139,44 @@ final class SubmissionAgentLogic {
     final Answer answer = Answers.mutable().apply(runtime.motions);
     final Answer current = runtime.answer.get();
     if (current == null) {
-      if (!answer.taxa().isEmpty()) {
-        runtime.answer.set(answer);
+      final Answer consolidated = consolidatedAnswer(runtime, answer);
+      if (!consolidated.taxa().isEmpty()) {
+        runtime.answer.set(consolidated);
       }
     } else if (!answer.taxa().isEmpty()) { // if taxa present in new answer
       // change the established answer if the taxa or the reviewers are different
-      if (!current.taxa().equals(answer.taxa())
-          || !current.reviewers().equals(answer.reviewers())) {
-        runtime.answer.set(answer);
+      final Answer consolidated = consolidatedAnswer(runtime, answer);
+      if (!current.taxa().equals(consolidated.taxa())
+          || !current.reviewers().equals(consolidated.reviewers())) {
+        runtime.answer.set(consolidated);
       }
+    }
+  }
+
+  private static Answer consolidatedAnswer(SubmissionAgent runtime, Answer toPublishAnswer) {
+    if (toPublishAnswer.taxa().isEmpty()) {
+      return toPublishAnswer;
+    }
+    final Set<String> consolidatedTaxa = new HashSet<>();
+    boolean didChange = false;
+    for (String code : toPublishAnswer.taxa()) {
+      if (Taxonomy.containsCode(code)) {
+        consolidatedTaxa.add(code);
+      } else {
+        Logic.warn(runtime, "throttleTimer", "Ignoring bad code " + code);
+        didChange = true;
+      }
+    }
+    if (!didChange) {
+      return toPublishAnswer;
+    }
+    if (consolidatedTaxa.isEmpty()) {
+      return Answers.mutable();
+    } else {
+      final Answer result = Answers.mutable();
+      toPublishAnswer.reviewers().forEach(r -> result.review(filethesebirds.munin.digest.motion.Forms.forReview()
+          .cast(Record.create(2).attr("review", r).slot("overrideTaxa", Forms.forSetString().mold(consolidatedTaxa).toValue()))));
+      return result;
     }
   }
 
