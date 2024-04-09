@@ -138,7 +138,7 @@ final class VaultApi {
     return st;
   }
 
-  private static final String DELETE_OBSERVATIONS_PREFIX = "DELETE FROM observations"
+  private static final String DELETE_OBSERVATIONS_PREFIX = "DELETE FROM observations_raw"
       + " WHERE submission_id = ";
 
   static PreparedStatement deleteObservations(Connection conn, String submissionId36)
@@ -164,10 +164,10 @@ final class VaultApi {
     return String.format(DELETE_OBSERVATIONS_PREFIX + "%d;", submissionId);
   }
 
-  private static final String INSERT_OBSERVATIONS_PREFIX = "INSERT INTO observations"
-      + " SELECT val.tax_ordinal, val.submission_id, submissions.upload_date"
+  private static final String INSERT_OBSERVATIONS_PREFIX = "INSERT INTO observations_raw"
+      + " SELECT val.submission_id, val.taxon_code"
       + " FROM (VALUES";
-  private static final String INSERT_OBSERVATIONS_SUFFIX = ") val (tax_ordinal, submission_id)"
+  private static final String INSERT_OBSERVATIONS_SUFFIX = ") val (submission_id, taxon_code)"
       + " JOIN submissions USING (submission_id)"
       + " ON CONFLICT DO NOTHING";
 
@@ -202,14 +202,15 @@ final class VaultApi {
     final PreparedStatement st = conn.prepareStatement(template);
     final Iterator<String> itr = answer.taxa().iterator();
     for (int i = 0; itr.hasNext(); i++) {
-      final int ordinal = Taxonomy.ordinal(itr.next());
+      final String code = itr.next();
+      final int ordinal = Taxonomy.ordinal(code);
       if (ordinal < 0) {
         st.close();
         return null;
       }
       final int base = 2 * i;
-      st.setInt(base + 1, ordinal);
-      st.setLong(base + 2, submissionId);
+      st.setLong(base + 1, submissionId);
+      st.setString(base + 2, code);
     }
     return st;
   }
