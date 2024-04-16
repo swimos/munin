@@ -68,7 +68,7 @@ public class Shared {
     if (Shared.eBirdClient != null) {
       throw new IllegalStateException("Multiple eBird client loading forbidden");
     }
-    try (InputStream is = Utils.openConfigFile(System.getProperty("ebird.conf"), "/ebird-config.properties")) {
+    try (InputStream is = Utils.openConfigFile(System.getProperty("ebird.conf"), "ebird-config.properties")) {
       Shared.eBirdClient = EBirdClient.fromStream(httpClient(), is);
     } catch (Exception e) {
       throw new RuntimeException("Failed to load eBird client", e);
@@ -79,7 +79,7 @@ public class Shared {
     if (Shared.redditClient != null) {
       throw new IllegalStateException("Multiple Reddit client loading forbidden");
     }
-    try (InputStream is = Utils.openConfigFile(System.getProperty("reddit.conf"), "/reddit-config.properties")) {
+    try (InputStream is = Utils.openConfigFile(System.getProperty("reddit.conf"), "reddit-config.properties")) {
       Shared.redditClient = RedditClient.fromStream(httpClient(), is);
     } catch (Exception e) {
       throw new RuntimeException("Failed to load Reddit client", e);
@@ -90,7 +90,7 @@ public class Shared {
     if (Shared.redditClient != null) {
       throw new IllegalStateException("Multiple Reddit client loading forbidden");
     }
-    try (InputStream is = Utils.openConfigFile(System.getProperty("vault.conf"), "/vault-config.properties")) {
+    try (InputStream is = Utils.openConfigFile(System.getProperty("vault.conf"), "vault-config.properties")) {
       Shared.vaultClient = VaultClient.fromStream(is);
     } catch (Exception e) {
       System.out.println("[WARN] Failed to load vault client (trace below). All intended queries will be logged, but not executed. Trace:");

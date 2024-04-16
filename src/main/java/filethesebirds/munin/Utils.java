@@ -26,16 +26,20 @@ public final class Utils {
   }
 
   public static InputStream openConfigFile(String diskPath, String resourcePath) {
+    return openConfigFile(diskPath, Utils.class.getClassLoader(), resourcePath);
+  }
+
+  public static InputStream openConfigFile(String diskPath, ClassLoader classLoader, String resourcePath) {
     if (diskPath == null || diskPath.isEmpty()) {
       System.out.println("[INFO] Will load resource at " + resourcePath);
-      return Main.class.getResourceAsStream(resourcePath);
+      return classLoader.getResourceAsStream(resourcePath);
     }
     try {
       System.out.println("[INFO] Will load file at " + diskPath);
       return new FileInputStream(diskPath);
     } catch (IOException e) {
       System.out.println("[INFO] Will load resource at " + resourcePath);
-      return Main.class.getResourceAsStream(resourcePath);
+      return Main.class.getClassLoader().getResourceAsStream(resourcePath);
     }
   }
 

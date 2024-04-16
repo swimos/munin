@@ -38,7 +38,7 @@ public class VaultClientSpec {
 
   @Test
   public void testPooled() {
-    final VaultClient client = VaultClient.fromStream(Utils.openConfigFile(System.getProperty("vault.conf"), "/bombe-config.properties"));
+    final VaultClient client = VaultClient.fromStream(Utils.openConfigFile(null, VaultClientSpec.class.getClassLoader(), "bombe-config.properties"));
     final List<Submission> submissions = List.of(
         new Submission("ybm8bf", "Flycatcher Friday(on a Sunday): Are these two different species? NY", "author",
             "North America", 	"https://b.thumbs.redditmedia.com/PhNOPlhgGPeLEARuV-R5pV6d8b6OdCRTGbUh70F3SBo.jpg",

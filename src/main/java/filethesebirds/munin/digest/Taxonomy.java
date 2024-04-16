@@ -32,7 +32,7 @@ public final class Taxonomy {
       String line;
       while ((line = br.readLine()) != null) {
         final String[] split = line.split(",");
-        if (split.length == 3) {
+        if (split.length >= 3) {
           final String code = split[0];
           if (codeIsValid(code)) {
             TAXONOMY.put(code, new String[]{split[1], split[2]});
