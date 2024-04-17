@@ -220,8 +220,12 @@ final class SubmissionAgentLogic {
   }
 
   private static Motion purify(SubmissionAgent runtime, String lane, TaxResolve taxonomy, Extract extract) {
-    while (extract.isImpure()) {
+    final int n = extract.hints().size() + extract.vagueHints().size();
+    for (int i = 0; i < n; i++) {
       extract = purifyOneHint(runtime, lane, taxonomy, extract);
+    }
+    if (extract.isImpure()) {
+      Logic.warn(runtime, lane, "extract was not completely purified");
     }
     return extract.base();
   }

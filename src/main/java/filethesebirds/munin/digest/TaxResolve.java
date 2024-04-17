@@ -31,16 +31,18 @@ public class TaxResolve {
   final Map<String, String[]> taxonomy;
   final Localed us;
   final Localed uk;
+  final Localed sci;
 
   public TaxResolve() {
     this.taxonomy = loadTaxonomy();
     this.us = new Localed("taxonomy/2023-us.csv");
     this.uk = new Localed("taxonomy/2023-uk.csv");
+    this.sci = new Localed("taxonomy/2023-sci.csv");
   }
 
   private static Map<String, String[]> loadTaxonomy() {
     final Map<String, String[]> result = new HashMap<>(32000);
-    try (InputStream is = Utils.openConfigFile(null, "taxonomy/2023-taxa.csv");
+    try (InputStream is = Utils.openConfigFile(null, "taxonomy/2023-com.csv");
          InputStreamReader isr = new InputStreamReader(is);
          BufferedReader br = new BufferedReader(isr)) {
       String line;
@@ -93,6 +95,8 @@ public class TaxResolve {
   public String resolve(String query) {
     if (query.contains("chicken") && !query.contains("prairie")) {
       return "redjun1";
+    } else if (query.contains("nonavian")) {
+      return "nonavian";
     }
     String sanitized = sanitizeQuery(query);
     String simplified = simplifySanitizedQuery(sanitized);
@@ -156,69 +160,81 @@ public class TaxResolve {
   }
 
   String resolveHasHybrid(String simplified) {
-    return resolve(
+    // TODO: intergrade?
+    final Match common = resolve(
         () -> this.us.resolveHybrid(simplified),
-        () -> this.uk.resolveHybrid(simplified))
-        .code;
-        // TODO:
-        //  US-intergrade
-        //  UK-intergrade
-
+        () -> this.uk.resolveHybrid(simplified));
+    return common.score > 0 ? common.code
+        : resolve(() -> this.sci.resolveHybrid(simplified)).code;
   }
 //
   String resolveHasDomestic(String simplified) {
-    return resolve(
+    final Match common = resolve(
         () -> this.us.resolveDomestic(simplified),
-        () -> this.uk.resolveDomestic(simplified))
-        .code;
+        () -> this.uk.resolveDomestic(simplified));
+    return common.score > 0 ? common.code
+        : resolve(() -> this.sci.resolveDomestic(simplified)).code;
   }
 
   String resolveHasIntergrade(String simplified) {
-    return resolve(
+    final Match common = resolve(
         () -> this.us.resolveIntergrade(simplified),
-        () -> this.uk.resolveIntergrade(simplified))
-        .code;
+        () -> this.uk.resolveIntergrade(simplified));
+    return common.score > 0 ? common.code
+        : resolve(() -> this.sci.resolveIntergrade(simplified)).code;
   }
 
   String resolveHasSlash(String simplified) {
-    return resolve(
+    // TODO: species, hybrid, intergrade?
+    final Match common = resolve(
         () -> this.us.resolveSlash(simplified),
-        () -> this.uk.resolveSlash(simplified))
-        .code;
-    // TODO: species, hybrid, intergrade
+        () -> this.uk.resolveSlash(simplified));
+    return common.score > 0 ? common.code
+        : resolve(() -> this.sci.resolveSlash(simplified)).code;
   }
 
   String resolveHasSp(String simplified) {
-    return resolve(
+    final Match common = resolve(
         () -> this.us.resolveSpuh(simplified),
-        () -> this.uk.resolveSpuh(simplified))
-        .code;
+        () -> this.uk.resolveSpuh(simplified));
+    return common.score > 0 ? common.code
+        : resolve(() -> this.sci.resolveSpuh(simplified)).code;
   }
 
   String resolveHasX(String simplified) {
-    return resolve(
+    final Match common = resolve(
         () -> this.us.resolveHybrid(simplified),
         () -> this.uk.resolveHybrid(simplified),
         () -> this.us.resolveIntergrade(simplified),
-        () -> this.uk.resolveIntergrade(simplified))
+        () -> this.uk.resolveIntergrade(simplified));
+    return common.score > 0 ? common.code
+        : resolve(
+            () -> this.sci.resolveHybrid(simplified),
+            () -> this.sci.resolveIntergrade(simplified))
         .code;
   }
 
   String resolveHasSubsp(String simplified) {
-    return resolve(
+    final Match common = resolve(
         () -> this.us.resolveSubspecies(simplified),
-        () -> this.uk.resolveSubspecies(simplified))
-        .code;
+        () -> this.uk.resolveSubspecies(simplified));
+    return common.score > 0 ? common.code
+        : resolve(() -> this.sci.resolveSubspecies(simplified)).code;
   }
 
-  String resolvePlain(String sanitized) {
-    return resolve(
-        () -> this.us.resolveSpecies(sanitized),
-        () -> this.uk.resolveSpecies(sanitized),
-        () -> this.us.resolveSubspecies(sanitized),
-        () -> this.uk.resolveSubspecies(sanitized),
-        () -> this.us.resolveHybrid(sanitized),
-        () -> this.uk.resolveHybrid(sanitized))
+  String resolvePlain(String simplified) {
+    final Match common = resolve(
+        () -> this.us.resolveSpecies(simplified),
+        () -> this.uk.resolveSpecies(simplified),
+        () -> this.us.resolveSubspecies(simplified),
+        () -> this.uk.resolveSubspecies(simplified),
+        () -> this.us.resolveHybrid(simplified),
+        () -> this.uk.resolveHybrid(simplified));
+    return common.score > 0 ? common.code
+        : resolve(
+            () -> this.sci.resolveSpecies(simplified),
+            () -> this.sci.resolveSubspecies(simplified),
+            () -> this.sci.resolveHybrid(simplified))
         .code;
   }
 
@@ -291,8 +307,9 @@ public class TaxResolve {
               case "issf":
               case "form":
                 target = this.subspeciesCom;
-                target.put(split[0], List.copyOf(new LinkedHashSet<>(tokenizeCom(split[1]))));
-                continue;
+//                target.put(split[0], List.copyOf(new LinkedHashSet<>(tokenizeCom(split[1]))));
+//                continue;
+                break;
               case "intergrade":
                 target = this.intergradeCom;
                 break;
@@ -307,7 +324,8 @@ public class TaxResolve {
                 continue;
             }
             final String code = split[0];
-            final List<String> value = tokenizeCom(split[1]);
+//            final List<String> value = tokenizeCom(split[1]);
+            final List<String> value = List.copyOf(new LinkedHashSet<>(tokenizeCom(split[1])));
             target.put(code, value);
           }
         }
