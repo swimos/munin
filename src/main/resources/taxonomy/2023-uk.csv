@@ -1,0 +1,256 @@
+y00468,Taiga/Tundra Bean Goose (Bean Goose),292,slash
+brant,Brent Goose,296,species
+dabbra1,Brent Goose (Dark-bellied),297,issf
+atlbra1,Brent Goose (Pale-bellied),298,issf
+blkbra1,Brent Goose (Black),299,issf
+gybbra1,Brent Goose (Gray-bellied),300,form
+brant2,Brent Goose (Dark-bellied x Black),301,intergrade
+brant1,Brent Goose (Pale-bellied x Black),302,intergrade
+x00685,Snow x Brent Goose (hybrid),303,hybrid
+x00722,Brent x Cackling Goose (hybrid),321,hybrid
+tunswa,Bewick's Swan,365,species
+tunswa1,Bewick's Swan (Whistling),366,issf
+bewswa1,Bewick's Swan (Bewick's),367,issf
+tunswa2,Bewick's Swan (Whistling x Bewick's),368,intergrade
+x00418,Trumpeter x Whistling Swan (hybrid),369,hybrid
+y00471,Trumpeter/Whistling Swan,370,slash
+y00708,Bewick's/Whooper Swan,374,slash
+gnwtea,Eurasian/Green-winged Teal,574,species
+egwtea1,Eurasian Teal,575,issf
+agwtea1,Green-winged Teal,576,issf
+gnwtea1,Eurasian x Green-winged Teal (hybrid),577,intergrade
+x00371,Garganey x Eurasian/Green-winged Teal (hybrid),579,hybrid
+x00372,Eurasian Wigeon x Eurasian Teal (hybrid),583,hybrid
+y00766,Garganey/Eurasian/Green-winged Teal,587,slash
+commer,Goosander,720,species
+goosan1,Goosander (Eurasian),721,issf
+commer1,Goosander (American),724,issf
+x00840,Common Eider x Goosander (hybrid),725,hybrid
+x00726,Hooded Merganser x Goosander (hybrid),726,hybrid
+x00780,Goosander x Red-breasted Merganser (hybrid),730,hybrid
+y00224,Goosander/Red-breasted Merganser,731,slash
+wilpta,Red Grouse/Willow Grouse,1297,species
+wilpta1,Red Grouse,1298,issf
+wilpta2,Willow Grouse (Arctic),1299,issf
+rinphe1,Common Pheasant,1420,species
+rinphe37,Common Pheasant (Domestic type),1451,domestic
+x01018,Common x Green Pheasant (hybrid),1456,hybrid
+rinphe,Common/Green Pheasant,1457,slash
+horgre,Slavonian Grebe,1842,species
+eargre,Black-necked Grebe,1852,species
+y00229,Slavonian/Black-necked Grebe,1856,slash
+rocpig,Rock Dove,1874,species
+rocpig2,Rock Dove (Wild type),1875,form
+rocpig1,Feral Pigeon,1889,domestic
+y01112,Rock Dove/Hill Pigeon,1893,slash
+cowpig1,Common Woodpigeon,1906,species
+comwop1,Common Woodpigeon (White-necked),1907,issf
+comwop2,Common Woodpigeon (Cinnamon-necked),1912,issf
+mauwop1,Mauritius Woodpigeon,1925,species
+spwpig1,Speckled Woodpigeon,1927,species
+aswpig1,Ashy Woodpigeon,1929,species
+niwpig1,Nilgiri Woodpigeon,1930,species
+ceywop1,Sri Lanka Woodpigeon,1931,species
+siwpig1,Silvery Woodpigeon,1933,species
+anwpig1,Andaman Woodpigeon,1934,species
+jawpig1,Japanese Woodpigeon,1935,species
+y00319,Rock Dove/Band-tailed Pigeon,1996,slash
+ortdov,Rufous Turtle Dove,2042,species
+eucdov,Collared Dove,2051,species
+x00382,European Turtle x Collared Dove (hybrid),2052,hybrid
+x01084,Oriental Turtle x Collared Dove (hybrid),2053,hybrid
+y01178,Collared/Burmese Collared Dove,2055,slash
+x00799,Collared Dove x African Collared Dove (hybrid),2060,hybrid
+y00851,Collared Dove/African Collared Dove,2061,slash
+y01078,Collared/Red Collared Dove,2082,slash
+corcra,Corncrake,5296,species
+commoo3,Common Moorhen,5436,species
+comgal1,American Moorhen,5442,species
+commoo2,American Moorhen (American),5443,issf
+comgal2,American Moorhen (Altiplano),5449,issf
+commoo1,American Moorhen (Hawaiian),5450,issf
+commoo,Common/American Moorhen,5451,slash
+x00390,American Moorhen x American Coot (hybrid),5479,hybrid
+eutkne1,Stone-curlew,5722,species
+bkbplo,Gray Plover,5782,species
+y00494,Gray Plover/golden plover sp.,5790,spuh
+litcur,Little Whimbrel,5986,species
+bktgod1,Black-tailed Godwit (Icelandic),6010,issf
+bktgod2,Black-tailed Godwit (Continental),6011,issf
+redpha1,Gray Phalarope,6085,species
+y00635,Gray/Red-necked Phalarope,6087,slash
+lotjae,Long-tailed Skua,6318,species
+parjae,Arctic Skua,6321,species
+y00481,Long-tailed/Arctic Skua,6322,slash
+pomjae,Pomarine Skua,6323,species
+y00480,Long-tailed/Pomarine Skua,6324,slash
+y00479,Arctic/Pomarine Skua,6325,slash
+jaeger,Pomarine/Parasitic/Long-tailed Skua,6333,spuh
+skua,large skua sp. (Catharacta sp.),6334,spuh
+y00615,skua sp.,6335,spuh
+doveki,Little Auk,6376,species
+thbmur,Brünnich's Guillemot,6379,species
+commur,Common Guillemot,6384,species
+x00793,Brünnich's x Common Guillemot (hybrid),6390,hybrid
+murre,Brünnich's/Common Guillemot,6391,slash
+comgul1,Common Gull (canus),6472,issf
+mewgul3,Common Gull (heinei),6473,issf
+kamgul1,Common Gull (kamtschatschensis),6474,issf
+kelgul1,Kelp Gull (Cape),6494,issf
+lbbgul1,Lesser Black-backed Gull (Baltic),6527,issf
+kumgul1,Iceland Gull (Kumlien's),6555,issf
+icegul2,Iceland Gull (Thayer's/Kumlien's),6556,form
+whwter,White-winged Black Tern,6667,species
+retloo,Red-throated Diver,6768,species
+arcloo,Black-throated Diver,6769,species
+pacloo,Pacific Diver,6772,species
+y00219,Black-throated/Pacific Diver,6773,slash
+comloo,Great Northern Diver,6774,species
+yebloo,White-billed Diver,6775,species
+y00220,Great Northern/White-billed Diver,6776,slash
+loon,diver sp.,6777,spuh
+grecor3,Great Cormorant (Continental),7228,issf
+greegr,Great White Egret,7491,species
+greegr1,Great White Egret (alba),7492,issf
+greegr4,Great White Egret (African),7493,issf
+greegr2,Great White Egret (American),7494,issf
+greegr3,Great White Egret (modesta),7495,issf
+x00398,Great White Egret x Gray Heron (hybrid),7513,hybrid
+x00677,Great White Egret x Great Blue Heron (hybrid),7522,hybrid
+blkvul,American Black Vulture,7620,species
+orihob2,Crested Honey-buzzard,7688,species
+orihob3,Crested Honey-buzzard (Northern),7689,issf
+orihob4,Crested Honey-buzzard (Indomalayan),7690,issf
+orihob10,Crested Honey-buzzard (Sunda),7693,issf
+x00786,European x Crested Honey-buzzard (hybrid),7697,hybrid
+y00658,European/Crested Honey-buzzard,7698,slash
+cinvul1,Black Vulture,7738,species
+eurgri1,Griffon Vulture,7753,species
+y00837,Rüppell's Griffon/Griffon Vulture,7756,slash
+y00838,Himalayan Griffon/Griffon Vulture,7757,slash
+shteag1,Short-toed Eagle,7797,species
+rolhaw,Rough-legged Buzzard,8332,species
+x00788,Swainson's x Rough-legged Buzzard (hybrid),8337,hybrid
+x00731,Red-tailed x Rough-legged Buzzard (hybrid),8338,hybrid
+molsco2,Moluccan Scops Owl (Wetar),8523,species
+borowl,Tengmalm's Owl,9088,species
+borowl1,Tengmalm's Owl (Eurasian),9089,issf
+borowl2,Tengmalm's Owl (American),9095,issf
+y01198,Tengmalm's/Northern Saw-whet Owl,9099,slash
+eurkes,Common Kestrel,11757,species
+eurkes2,Common Kestrel (Common),11758,issf
+eurkes3,Common Kestrel (Canary Is.),11765,issf
+eurkes4,Common Kestrel (Cape Verde),11768,issf
+eurkes5,Common Kestrel (Rufescent),11771,issf
+y00613,Lesser/Common Kestrel,11772,slash
+y00933,Common/Rock Kestrel,11774,slash
+merlin2,Merlin (Steppe),11832,issf
+gyrfal,Gyr Falcon,11874,species
+rorpar,Ring-necked Parakeet,12111,species
+y01061,Alexandrine/Ring-necked Parakeet,12116,slash
+rutshr2,Turkestan Shrike,20639,species
+x00860,Red-backed x Turkestan Shrike (hybrid),20640,hybrid
+rutshr1,Turkestan/Isabelline Shrike,20646,slash
+eurmag1,Common Magpie,21076,species
+eurmag2,Common Magpie (Iberian),21077,issf
+eurmag4,Common Magpie (Eurasian),21078,issf
+eurmag7,Common Magpie (Kamchatkan),21083,issf
+y01104,Oriental/Common Magpie,21084,slash
+eurnut1,Spotted Nutcracker,21094,species
+eurnut3,Spotted Nutcracker (Northern),21095,issf
+eurnut4,Spotted Nutcracker (Southern),21100,issf
+yebcho1,Alpine Chough,21117,species
+y00895,Red-billed/Alpine Chough,21121,slash
+gyhchi,Siberian Tit,21718,species
+x00743,Willow x Siberian Tit (hybrid),21723,hybrid
+horlar,Shore Lark,22182,species
+horlar5,Shore Lark (Atlas),22183,issf
+horlar6,Shore Lark (Black-necklaced),22184,issf
+horlar7,Shore Lark (Tibetan),22190,issf
+horlar8,Shore Lark (Brandt's),22198,issf
+horlar4,Shore Lark (flava),22199,issf
+horlar3,Shore Lark (Eastern dark Group),22200,issf
+horlar2,Shore Lark (Western pale Group),22205,issf
+horlar1,Shore Lark (Western rufous Group),22216,issf
+horlar9,Shore Lark (South Baja),22223,issf
+horlar10,Shore Lark (Mexican),22224,issf
+horlar11,Shore Lark (Colombian),22230,issf
+y00898,Shore/Temminck's Lark,22232,slash
+woolar1,Woodlark,22308,species
+bearee1,Bearded Tit,22429,species
+banswa,Sand Martin,23636,species
+y01086,Gray-throated/Sand Martin,23641,slash
+y00808,Sand/Pale Martin,23647,slash
+y00981,Eurasian Crag/Rock Martin,23745,slash
+x00710,Sand Martin x Barn Swallow (hybrid),23782,hybrid
+palwar5,Pallas's Warbler,24390,species
+grewhi1,Common Whitethroat,24937,species
+eursta,Common Starling,27356,species
+y00626,Common/Spotless Starling,27370,slash
+rossta2,Rose-colored Starling,27372,species
+rtrthr1,Common Rock Thrush,29150,species
+whiwag,Pied Wagtail/White Wagtail,31202,species
+whiwag1,White Wagtail (alba),31203,issf
+whiwag3,Pied Wagtail,31206,issf
+watpip2,Water Pipit (European),31351,issf
+watpip4,Water Pipit (Asian),31353,issf
+rocpip2,Rock Pipit (Scandinavian),31359,issf
+amepip,Buff-bellied Pipit,31361,species
+sibpip1,Buff-bellied Pipit (Siberian),31362,issf
+amepip2,Buff-bellied Pipit (American),31363,issf
+y00760,Water/Buff-bellied Pipit,31367,slash
+eurlin1,Common Linnet,31951,species
+y01057,Twite/Common Linnet,31959,slash
+hoared,Arctic Redpoll,31969,species
+hoared2,Arctic Redpoll (Coues's),31970,issf
+hoared1,Arctic Redpoll (Hornemann's),31971,issf
+x00625,Common x Arctic Redpoll (hybrid),31972,hybrid
+redpol,Common/Arctic Redpoll,31973,slash
+redcro,Common Crossbill,31977,species
+redcro11,Common Crossbill (Corsican),31978,issf
+redcro12,Common Crossbill (Balearic),31979,issf
+redcro13,Common Crossbill (North African),31980,issf
+redcro14,Common Crossbill (Cyprus),31981,issf
+redcro15,Common Crossbill (Crimean),31982,issf
+redcro16,Common Crossbill (Altai),31983,issf
+redcro17,Common Crossbill (Tien Shan),31984,issf
+redcro18,Common Crossbill (Himalayan),31985,issf
+redcro19,Common Crossbill (Dalat),31986,issf
+redcro20,Common Crossbill (Japanese),31987,issf
+redcro21,Common Crossbill (Luzon),31988,issf
+redcro22,Common Crossbill (Wandering or type A),31990,form
+redcro23,Common Crossbill (Bohemian or type B),31991,form
+redcro24,Common Crossbill (Glip or type C),31992,form
+redcro25,Common Crossbill (Phantom or type D),31993,form
+redcro26,Common Crossbill (Parakeet or type E),31994,form
+redcro27,Common Crossbill (Scarce or type F),31995,form
+redcro28,Common Crossbill (Parakeet or type X),31996,form
+redcro1,Common Crossbill (Appalachian or type 1),32005,form
+redcro2,Common Crossbill (Ponderosa Pine or type 2),32006,form
+redcro3,Common Crossbill (Western Hemlock or type 3),32007,form
+redcro4,Common Crossbill (Douglas-fir or type 4),32008,form
+redcro5,Common Crossbill (Lodgepole Pine or type 5),32009,form
+redcro6,Common Crossbill (Sierra Madre or type 6),32010,form
+redcro7,Common Crossbill (Enigmatic or type 7),32011,form
+redcro8,Common Crossbill (Newfoundland or type 8),32012,form
+redcro10,Common Crossbill (Sitka Spruce or type 10),32013,form
+redcro29,Common Crossbill (Central American or type 11),32014,issf
+redcro39,Common Crossbill (Northeastern or type 12),32015,form
+y00928,Parrot/Common Crossbill,32016,slash
+y01058,Common/Cassia Crossbill,32018,slash
+whwcro,Two-barred Crossbill,32020,species
+whwcro1,Two-barred Crossbill (Eurasian),32021,issf
+whwcro2,Two-barred Crossbill (American),32022,issf
+comcan,Atlantic Canary,32052,species
+islcan1,Atlantic Canary (Domestic type),32053,domestic
+x01005,European Goldfinch x Atlantic Canary (hybrid),32054,hybrid
+fifser1,Red-fronted Serin,32055,species
+y01060,European/Red-fronted/Syrian Serin,32057,slash
+laplon,Lapland Bunting,32138,species
+x00919,Lapland x Snow Bunting (hybrid),32151,hybrid
+cinbun2,Cinereous Bunting (Western),32218,issf
+cinbun3,Cinereous Bunting (Eastern),32219,issf
+palbun,Pallas's Reed Bunting,32272,species
+reebun,Common Reed Bunting,32277,species
+y01015,Pallas's/Common Reed Bunting,32297,slash
+fatwar,Mexican Fan-tailed Warbler,33679,species
