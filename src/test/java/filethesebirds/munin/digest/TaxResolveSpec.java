@@ -79,6 +79,7 @@ public class TaxResolveSpec {
     assertEquals(TR.resolve("setophaga coronata x auduboni"), "yerwar3");
     assertEquals(TR.resolve("anser anser"), "gragoo");
     assertEquals(TR.resolve("anser anser (anser)"), "gragoo2");
+    assertEquals(TR.resolve("calurus red-tailed"), "wrthaw1");
   }
 
 }

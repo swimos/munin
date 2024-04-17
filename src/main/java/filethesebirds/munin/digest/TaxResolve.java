@@ -387,7 +387,7 @@ public class TaxResolve {
         if (match.score == 100) {
           return match;
         }
-        if (match.compare(soFar) > 0) {
+        if (match.compare(soFar) > 0 || (match.compare(soFar) == 0 && "wrthaw1".equals(match.code))) {
           soFar = match;
         }
       }
