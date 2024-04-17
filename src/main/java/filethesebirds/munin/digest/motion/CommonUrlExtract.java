@@ -15,7 +15,6 @@
 package filethesebirds.munin.digest.motion;
 
 import filethesebirds.munin.digest.TaxResolve;
-import filethesebirds.munin.digest.Taxonomy;
 import java.util.Locale;
 import java.util.Set;
 import swim.uri.Uri;
@@ -26,7 +25,7 @@ class CommonUrlExtract {
 
   private static String sanitizeAllAboutBirdsHint(String raw) {
     // TODO: ed, ing
-    return raw.replace("_", "%20")
+    return raw.replace("_", " ")
         .replaceAll("sss\\b", "ss")
         .replaceAll("s\\b", "");
   }

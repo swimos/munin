@@ -19,6 +19,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Submission;
+import filethesebirds.munin.digest.TaxResolve;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,7 +29,11 @@ import java.util.stream.Collectors;
 
 public abstract class VaultClient {
 
-  public static final VaultClient DRY = new Dry();
+  protected TaxResolve taxonomy;
+
+  VaultClient(TaxResolve taxonomy) {
+    this.taxonomy = taxonomy;
+  }
 
   public abstract void upsertSubmissions(Collection<Submission> submissions);
 
@@ -46,15 +51,20 @@ public abstract class VaultClient {
     deleteSubmissions10(submissions36.stream().map(Utils::id36To10).collect(Collectors.toSet()));
   }
 
-  public static VaultClient fromStream(InputStream is) {
-    return new Pooled(Utils.credentialsFromStream(is, p -> new HikariDataSource(new HikariConfig(p))));
+  public static VaultClient fromStream(TaxResolve taxonomy, InputStream is) {
+    return new Pooled(taxonomy, Utils.credentialsFromStream(is, p -> new HikariDataSource(new HikariConfig(p))));
+  }
+
+  public static Dry dry(TaxResolve taxonomy) {
+    return new Dry(taxonomy);
   }
 
   private static class Pooled extends VaultClient {
 
     private final HikariDataSource source;
 
-    private Pooled(HikariDataSource source) {
+    private Pooled(TaxResolve taxonomy, HikariDataSource source) {
+      super(taxonomy);
       this.source = source;
     }
 
@@ -94,7 +104,7 @@ public abstract class VaultClient {
         if (delete != null) {
           delete.executeUpdate();
         }
-        final PreparedStatement insert = VaultApi.insertObservations(conn, submission36, answer);
+        final PreparedStatement insert = VaultApi.insertObservations(conn, this.taxonomy, submission36, answer);
         if (insert != null) {
           insert.executeUpdate();
         }
@@ -137,7 +147,11 @@ public abstract class VaultClient {
 
   }
 
-  private static class Dry extends VaultClient {
+  public static class Dry extends VaultClient {
+
+    Dry(TaxResolve taxonomy) {
+      super(taxonomy);
+    }
 
     @Override
     public void upsertSubmissions(Collection<Submission> submissions) {
@@ -150,7 +164,7 @@ public abstract class VaultClient {
           + VaultApi.createPlaceholderSubmissionQuery(submissionId36) + "%n"
           + VaultApi.deleteObservationsQuery(submissionId36) + "%n"
           + (answer == null || answer.taxa().isEmpty() ? ""
-              : VaultApi.insertObservationsQuery(submissionId36, answer) + "%n"));
+              : VaultApi.insertObservationsQuery(this.taxonomy, submissionId36, answer) + "%n"));
     }
 
     @Override

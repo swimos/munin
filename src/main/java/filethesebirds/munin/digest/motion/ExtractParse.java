@@ -16,7 +16,6 @@ package filethesebirds.munin.digest.motion;
 
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.TaxResolve;
-import filethesebirds.munin.digest.Taxonomy;
 import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.motion.commonmark.HintExtension;
 import java.util.HashSet;

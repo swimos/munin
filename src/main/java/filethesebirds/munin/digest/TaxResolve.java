@@ -40,8 +40,7 @@ public class TaxResolve {
 
   private static Map<String, String[]> loadTaxonomy() {
     final Map<String, String[]> result = new HashMap<>(32000);
-    try (InputStream is = Utils.openConfigFile(System.getProperty("taxonomy.conf"),
-        "/ebird-taxa.csv");
+    try (InputStream is = Utils.openConfigFile(null, "taxonomy/2023-taxa.csv");
          InputStreamReader isr = new InputStreamReader(is);
          BufferedReader br = new BufferedReader(isr)) {
       String line;

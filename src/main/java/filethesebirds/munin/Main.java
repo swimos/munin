@@ -33,6 +33,7 @@ public class Main {
 
   private static void startSingletons() {
     Shared.loadTaxonomy();
+    Shared.loadDryVaultClient();
     Shared.loadVaultClient();
     Shared.loadRedditClient();
   }

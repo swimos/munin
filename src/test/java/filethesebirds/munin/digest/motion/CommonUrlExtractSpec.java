@@ -28,7 +28,7 @@ public class CommonUrlExtractSpec {
     assertTrue(extract("https://media.ebird.org/catalog?taxonCode=brwhaw&sort=rating_rank_desc&mediaType=photo&beginMonth=8&endMonth=9&age=juvenile,immature",
         taxa, hints));
     assertEquals(taxa, Set.of("rxyfli", "brwhaw"));
-    assertEquals(hints, Set.of("short-billed%20dowitcher"));
+    assertEquals(hints, Set.of("short-billed dowitcher"));
   }
 
 }

@@ -37,7 +37,7 @@ public final class Users {
 
   private static void loadSet(Set<String> set, String name) {
     try (InputStream is = Utils.openConfigFile(System.getProperty(name + ".conf"),
-            "/" + name + ".txt");
+        name + ".txt");
         InputStreamReader isr = new InputStreamReader(is);
         BufferedReader br = new BufferedReader(isr)) {
       String line;

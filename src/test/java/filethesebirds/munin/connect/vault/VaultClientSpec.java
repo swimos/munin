@@ -4,6 +4,7 @@ import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Forms;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.Utils;
+import filethesebirds.munin.digest.TaxResolve;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -15,6 +16,8 @@ import swim.recon.Recon;
 import swim.structure.Value;
 
 public class VaultClientSpec {
+
+  private static final TaxResolve TAXONOMY = new TaxResolve();
 
   @Test
   public void testDrySubmissionsUpsert() {
@@ -33,12 +36,12 @@ public class VaultClientSpec {
     final String submissionId36 = "111o8dj";
     System.out.println(VaultApi.deleteObservationsQuery(submissionId36));
     final Value answer = Recon.parse("@answer{taxa:{saffin,yebcar,javspa,houspa,commyn},reviewers:{kiwikiu}}");
-    System.out.println(VaultApi.insertObservationsQuery(submissionId36, Forms.forAnswer().cast(answer)));
+    System.out.println(VaultApi.insertObservationsQuery(TAXONOMY, submissionId36, Forms.forAnswer().cast(answer)));
   }
 
   @Test
   public void testPooled() {
-    final VaultClient client = VaultClient.fromStream(Utils.openConfigFile(null, VaultClientSpec.class.getClassLoader(), "bombe-config.properties"));
+    final VaultClient client = VaultClient.fromStream(TAXONOMY, Utils.openConfigFile(null, VaultClientSpec.class.getClassLoader(), "bombe-config.properties"));
     final List<Submission> submissions = List.of(
         new Submission("ybm8bf", "Flycatcher Friday(on a Sunday): Are these two different species? NY", "author",
             "North America", 	"https://b.thumbs.redditmedia.com/PhNOPlhgGPeLEARuV-R5pV6d8b6OdCRTGbUh70F3SBo.jpg",

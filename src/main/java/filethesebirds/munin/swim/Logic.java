@@ -221,7 +221,7 @@ final class Logic {
       error(runtime, caller, failureMsg);
       new Exception(runtime.nodeUri() + ": " + failureMsg, e)
           .printStackTrace();
-      action.accept(VaultClient.DRY);
+      action.accept(Shared.dryVaultClient());
     }
   }
 

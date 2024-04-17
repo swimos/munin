@@ -67,7 +67,7 @@ public class ExtractParseSpec {
     final String body = "++Setophaga sp++ or doing an addTaxa with the code from the link you should see soon would both work.\n\n!nr";
     final Extract extract = ExtractParse.parseComment(TAXONOMY, bareReview(body));
     assertEquals(extract.base().plusTaxa(), Collections.emptySet());
-    assertEquals(extract.vagueHints(), Set.of("setophaga sp"));
+    assertEquals(extract.vagueHints(), Set.of("Setophaga sp"));
   }
 
   @Test

@@ -36,6 +36,7 @@ public class Shared {
   private static TaxResolve taxonomy = null;
   private static RedditClient redditClient = null;
   private static VaultClient vaultClient = null;
+  private static VaultClient dryVaultClient = null;
 
   public static LiveSubmissions liveSubmissions() {
     return Shared.liveSubmissions;
@@ -55,6 +56,10 @@ public class Shared {
 
   public static VaultClient vaultClient() {
     return Shared.vaultClient;
+  }
+
+  public static VaultClient dryVaultClient() {
+    return Shared.dryVaultClient;
   }
 
   public static void loadLiveSubmissions(Coalescence coalescence) {
@@ -88,15 +93,22 @@ public class Shared {
 
   public static void loadVaultClient() {
     if (Shared.redditClient != null) {
-      throw new IllegalStateException("Multiple Reddit client loading forbidden");
+      throw new IllegalStateException("Multiple vault client loading forbidden");
     }
     try (InputStream is = Utils.openConfigFile(System.getProperty("vault.conf"), "vault-config.properties")) {
-      Shared.vaultClient = VaultClient.fromStream(is);
+      Shared.vaultClient = VaultClient.fromStream(Shared.taxonomy, is);
     } catch (Exception e) {
       System.out.println("[WARN] Failed to load vault client (trace below). All intended queries will be logged, but not executed. Trace:");
       e.printStackTrace();
-      Shared.vaultClient = VaultClient.DRY;
+      Shared.vaultClient = VaultClient.dry(Shared.taxonomy);
     }
+  }
+
+  public static void loadDryVaultClient() {
+    if (Shared.dryVaultClient != null) {
+      throw new IllegalStateException("Multiple dry vault client loading forbidden");
+    }
+    Shared.dryVaultClient = VaultClient.dry(Shared.taxonomy);
   }
 
 }

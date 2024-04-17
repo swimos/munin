@@ -17,7 +17,7 @@ package filethesebirds.munin.connect.vault;
 import filethesebirds.munin.Utils;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Submission;
-import filethesebirds.munin.digest.Taxonomy;
+import filethesebirds.munin.digest.TaxResolve;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -171,7 +171,8 @@ final class VaultApi {
       + " JOIN submissions USING (submission_id)"
       + " ON CONFLICT DO NOTHING";
 
-  static PreparedStatement insertObservations(Connection conn, String submissionId36, Answer answer)
+  static PreparedStatement insertObservations(Connection conn, TaxResolve taxonomy,
+                                              String submissionId36, Answer answer)
       throws SQLException {
     if (answer == null || answer.taxa().isEmpty()) {
       return null;
@@ -203,7 +204,7 @@ final class VaultApi {
     final Iterator<String> itr = answer.taxa().iterator();
     for (int i = 0; itr.hasNext(); i++) {
       final String code = itr.next();
-      final int ordinal = Taxonomy.ordinal(code);
+      final int ordinal = taxonomy.ordinal(code);
       if (ordinal < 0) {
         st.close();
         return null;
@@ -215,7 +216,8 @@ final class VaultApi {
     return st;
   }
 
-  static String insertObservationsQuery(String submissionId36, Answer answer) {
+  static String insertObservationsQuery(TaxResolve taxonomy,
+                                        String submissionId36, Answer answer) {
     final long submissionId;
     try {
       submissionId = Utils.id36To10(submissionId36);
@@ -229,17 +231,18 @@ final class VaultApi {
     final StringBuilder sb = new StringBuilder(128);
     sb.append(INSERT_OBSERVATIONS_PREFIX);
     final Iterator<String> taxaIter = answer.taxa().iterator();
-    sb.append(formatRepeatUpsertObservation(repeatFmt, taxaIter.next(), submissionId));
+    sb.append(formatRepeatUpsertObservation(taxonomy, repeatFmt, taxaIter.next(), submissionId));
     while (taxaIter.hasNext()) {
-      sb.append(formatRepeatUpsertObservation("," + repeatFmt, taxaIter.next(), submissionId));
+      sb.append(formatRepeatUpsertObservation(taxonomy, "," + repeatFmt, taxaIter.next(), submissionId));
     }
     sb.append(INSERT_OBSERVATIONS_SUFFIX);
     return sb.toString();
   }
 
-  private static String formatRepeatUpsertObservation(String fmt, String taxon, long submissionId) {
+  private static String formatRepeatUpsertObservation(TaxResolve taxonomy,
+                                                      String fmt, String taxon, long submissionId) {
     return String.format(fmt,
-        Taxonomy.ordinal(taxon),
+        taxonomy.ordinal(taxon),
         submissionId);
   }
 
