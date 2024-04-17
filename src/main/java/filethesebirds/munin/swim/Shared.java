@@ -15,9 +15,9 @@
 package filethesebirds.munin.swim;
 
 import filethesebirds.munin.Utils;
-import filethesebirds.munin.connect.ebird.EBirdClient;
 import filethesebirds.munin.connect.reddit.RedditClient;
 import filethesebirds.munin.connect.vault.VaultClient;
+import filethesebirds.munin.digest.TaxResolve;
 import java.io.InputStream;
 import java.net.http.HttpClient;
 
@@ -33,7 +33,7 @@ public class Shared {
   }
 
   private static LiveSubmissions liveSubmissions = null;
-  private static EBirdClient eBirdClient = null;
+  private static TaxResolve taxonomy = null;
   private static RedditClient redditClient = null;
   private static VaultClient vaultClient = null;
 
@@ -41,12 +41,12 @@ public class Shared {
     return Shared.liveSubmissions;
   }
 
-  public static HttpClient httpClient() {
-    return HTTP_CLIENT;
+  public static TaxResolve taxonomy() {
+    return Shared.taxonomy;
   }
 
-  public static EBirdClient eBirdClient() {
-    return Shared.eBirdClient;
+  public static HttpClient httpClient() {
+    return HTTP_CLIENT;
   }
 
   public static RedditClient redditClient() {
@@ -64,17 +64,6 @@ public class Shared {
     Shared.liveSubmissions = coalescence.toLiveSubmissions();
   }
 
-  public static void loadEBirdClient() {
-    if (Shared.eBirdClient != null) {
-      throw new IllegalStateException("Multiple eBird client loading forbidden");
-    }
-    try (InputStream is = Utils.openConfigFile(System.getProperty("ebird.conf"), "ebird-config.properties")) {
-      Shared.eBirdClient = EBirdClient.fromStream(httpClient(), is);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to load eBird client", e);
-    }
-  }
-
   public static void loadRedditClient() {
     if (Shared.redditClient != null) {
       throw new IllegalStateException("Multiple Reddit client loading forbidden");
@@ -83,6 +72,17 @@ public class Shared {
       Shared.redditClient = RedditClient.fromStream(httpClient(), is);
     } catch (Exception e) {
       throw new RuntimeException("Failed to load Reddit client", e);
+    }
+  }
+
+  public static void loadTaxonomy() {
+    if (Shared.taxonomy != null) {
+      throw new IllegalStateException("Multiple taxonomy loading forbidden");
+    }
+    try {
+      Shared.taxonomy = new TaxResolve();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to load taxonomy", e);
     }
   }
 

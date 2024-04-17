@@ -25,15 +25,15 @@ import swim.server.ServerLoader;
 public class Main {
 
   public static void main(String[] args) {
-    startExternalClients();
+    startSingletons();
     final WarpRef swim = startSwimServer();
     coalesce(swim);
     // Park main thread while Swim server runs asynchronously
   }
 
-  private static void startExternalClients() {
+  private static void startSingletons() {
+    Shared.loadTaxonomy();
     Shared.loadVaultClient();
-    Shared.loadEBirdClient();
     Shared.loadRedditClient();
   }
 

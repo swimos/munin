@@ -18,11 +18,9 @@ import filethesebirds.munin.Utils;
 import filethesebirds.munin.connect.reddit.RedditResponse;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
-import filethesebirds.munin.digest.Taxonomy;
 import filethesebirds.munin.digest.answer.Forms;
 import filethesebirds.munin.digest.answer.Publication;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import swim.structure.Attr;
 import swim.structure.Item;
@@ -150,7 +148,7 @@ final class PublishingAgentLogic {
     final String subId36 = comment.submissionId();
     final long subId10 = Utils.id36To10(subId36),
         thisCommentId10 = Utils.id36To10(comment.id());
-    final Answer thisPublishedAnswer = Publication.answerFromPublication(comment.body());
+    final Answer thisPublishedAnswer = Publication.answerFromPublication(Shared.taxonomy(), comment.body());
     Logic.info(runtime, "addPublisherComment", "Extracted " + thisPublishedAnswer + " from published comment");
     final Value prevPublishedEntry = runtime.publishedAnswers.get(subId10);
     if (prevPublishedEntry instanceof Record) {
@@ -278,7 +276,7 @@ final class PublishingAgentLogic {
           + subId36  + "/" + commentId36
           + " answer to " + toPublishAnswer);
       Logic.executeRedditCallable(runtime, "throttleTimer", "editComment",
-          client -> client.publishEditEditusertext("t1_" + commentId36, Publication.publicationFromAnswer(toPublishAnswer)),
+          client -> client.publishEditEditusertext("t1_" + commentId36, Publication.publicationFromAnswer(Shared.taxonomy(), toPublishAnswer)),
           r -> onPublishResponse(runtime, subId10, r, c -> Logic.info(runtime, "throttleTimer (blocker)", "Successfully edited comment to " + c)));
       return true;
     }
@@ -290,7 +288,7 @@ final class PublishingAgentLogic {
     Logic.info(runtime, "throttleTimer", "Will asynchronously create comment to submission "
         + subId36  + " with answer " + toPublishAnswer);
     Logic.executeRedditCallable(runtime, "throttleTimer", "createComment",
-        client -> client.publishAnyComment("t3_" + Utils.id10To36(subId10), Publication.publicationFromAnswer(toPublishAnswer)),
+        client -> client.publishAnyComment("t3_" + Utils.id10To36(subId10), Publication.publicationFromAnswer(Shared.taxonomy(), toPublishAnswer)),
         r -> onPublishResponse(runtime, subId10, r, c -> Logic.info(runtime, "throttleTimer (blocker)", "Successfully created comment " + c)));
   }
 
@@ -298,7 +296,7 @@ final class PublishingAgentLogic {
                                         Consumer<Comment> log) {
     final Comment comment = response.essence();
     log.accept(comment);
-    final Answer publishedAnswer = Publication.answerFromPublication(comment.body());
+    final Answer publishedAnswer = Publication.answerFromPublication(Shared.taxonomy(), comment.body());
     final Record publishedAnswerValue = Record.create(2)
         .slot("id", Utils.id36To10(comment.id()))
         .slot("answer", Forms.forAnswer().mold(publishedAnswer).toValue());

@@ -15,7 +15,7 @@
 package filethesebirds.munin.digest.answer;
 
 import filethesebirds.munin.digest.Answer;
-import filethesebirds.munin.digest.Taxonomy;
+import filethesebirds.munin.digest.TaxResolve;
 import filethesebirds.munin.digest.Users;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -32,18 +32,18 @@ public final class Publication {
   private Publication() {
   }
 
-  private static String publishableTaxa(Set<String> taxa) {
+  private static String publishableTaxa(TaxResolve taxonomy, Set<String> taxa) {
     if (taxa == null || taxa.isEmpty()) {
       return null;
     }
     final List<String> entries = new ArrayList<>(taxa.size());
     for (String taxon : taxa) {
-      if (Taxonomy.containsCode(taxon)) {
+      if (taxonomy.containsCode(taxon)) {
         if ("nonavian".equals(taxon)) {
-          entries.add(Taxonomy.commonName(taxon));
+          entries.add(taxonomy.commonName(taxon));
         } else {
           entries.add(String.format("[%s](https://ebird.org/species/%s)",
-              Taxonomy.commonName(taxon), taxon));
+              taxonomy.commonName(taxon), taxon));
         }
       }
     }
@@ -63,11 +63,11 @@ public final class Publication {
     return String.join(", ", entries);
   }
 
-  public static String publicationFromAnswer(Answer ans) {
+  public static String publicationFromAnswer(TaxResolve taxonomy, Answer ans) {
     if (ans == null) {
       return null;
     }
-    final String taxa = publishableTaxa(ans.taxa());
+    final String taxa = publishableTaxa(taxonomy, ans.taxa());
     if (taxa == null) {
       return null;
     }
@@ -79,12 +79,12 @@ public final class Publication {
         + "[^(Learn to use me)](https://gist.github.com/brohitbrose/be99a16ddc7a6a1bd9c1eef28d622564)";
   }
 
-  public static Answer answerFromPublication(String pub) {
+  public static Answer answerFromPublication(TaxResolve taxonomy, String pub) {
     final PublicationVisitor visitor = new PublicationVisitor();
     PARSER.parse(pub).accept(visitor);
     final MutableAnswer answer = (MutableAnswer) Answers.mutable();
     answer.addAllTaxa(visitor.taxa());
-    if (pub.contains(Taxonomy.commonName("nonavian"))) {
+    if (pub.contains(taxonomy.commonName("nonavian"))) {
       answer.addAllTaxa(Set.of("nonavian"));
     }
     answer.addAllReviewers(visitor.reviewers());

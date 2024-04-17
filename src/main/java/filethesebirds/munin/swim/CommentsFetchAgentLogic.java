@@ -19,7 +19,6 @@ import filethesebirds.munin.connect.reddit.RedditClient;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Submission;
 import filethesebirds.munin.digest.Users;
-import filethesebirds.munin.digest.motion.HintCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -84,10 +83,6 @@ final class CommentsFetchAgentLogic {
 
     void run() {
       gatherComments(RedditClient::fetchMaxUndocumentedComments);
-      if (this.runtime.afterId10 == this.newBookmarkId10 && Math.random() < .2) {
-        Logic.debug(this.runtime, CALLER_TASK, "Will cue HintCache prune");
-        HintCache.prune();
-      }
       this.runtime.afterId10 = this.newBookmarkId10;
     }
 

@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.digest.motion;
 
+import filethesebirds.munin.digest.TaxResolve;
 import filethesebirds.munin.digest.motion.commonmark.Hint;
 import filethesebirds.munin.digest.motion.commonmark.VagueHint;
 import java.util.HashSet;
@@ -26,11 +27,13 @@ import swim.uri.Uri;
 
 class ExtractingVisitor extends AbstractVisitor {
 
+  private final TaxResolve taxonomy;
   private final Set<String> plusTaxa;
   private final Set<String> plusHints;
   private final Set<String> plusVagueHints;
 
-  ExtractingVisitor() {
+  ExtractingVisitor(TaxResolve taxonomy) {
+    this.taxonomy = taxonomy;
     this.plusTaxa = new HashSet<>();
     this.plusHints = new HashSet<>();
     this.plusVagueHints = new HashSet<>();
@@ -48,40 +51,6 @@ class ExtractingVisitor extends AbstractVisitor {
     return this.plusVagueHints;
   }
 
-  private static String cleanHint(String s) {
-    s = s.trim();
-    final StringBuilder sb = new StringBuilder(s.length() + 8);
-    for (int i = 0; i < s.length(); i++) {
-      final char c = s.charAt(i);
-      if (('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || ('/' == c) || ('(' == c) || (')' == c) || ('.' == c)) {
-        sb.append(c);
-      } else if ('A' <= c && c <= 'Z') {
-        sb.append((char) (c + ('a' - 'A')));
-      } else if ((c == '-' || Character.isWhitespace(c))
-          && i > 0 && !Character.isWhitespace(s.charAt(i - 1))) {
-        sb.append("%20");
-      }
-    }
-    return sb.toString();
-  }
-
-  private static String normalize(String s) {
-    // TODO: ed, ing
-    return s.replaceAll("european", "eur")
-        .replaceAll("eurasian", "eur")
-        .replaceAll("conure", "parakeet")
-        .replaceAll("greater", "great")
-        .replaceAll("vermillion", "vermilion")
-        .replaceAll("species", "sp.")
-        .replaceAll("mice\\b", "mouse")
-        .replaceAll("eeses\\b", "oose")
-        .replaceAll("eese\\b", "oose")
-        .replaceAll("sss\\b", "ss")
-        .replaceAll("ies\\b", "")
-        .replaceAll("es\\b", "")
-        .replaceAll("s\\b", "");
-  }
-
   @Override
   public void visit(Link link) {
     if ("".equals(link.getTitle())) {
@@ -96,7 +65,7 @@ class ExtractingVisitor extends AbstractVisitor {
       super.visit(link);
       return;
     }
-    CommonUrlExtract.extractFromUri(uri, plusTaxa(), plusHints());
+    CommonUrlExtract.extractFromUri(this.taxonomy, uri, plusTaxa(), plusHints());
     super.visit(link);
   }
 
@@ -104,13 +73,11 @@ class ExtractingVisitor extends AbstractVisitor {
   public void visit(CustomNode customNode) {
     if (customNode instanceof Hint) {
       if (customNode.getFirstChild() instanceof Text) {
-        final String filtered = normalize(cleanHint(((Text) customNode.getFirstChild()).getLiteral()));
-        plusHints().add(filtered);
+        plusHints().add(((Text) customNode.getFirstChild()).getLiteral());
       }
     } else if (customNode instanceof VagueHint) {
       if (customNode.getFirstChild() instanceof Text) {
-        final String filtered = normalize(cleanHint(((Text) customNode.getFirstChild()).getLiteral()));
-        plusVagueHints().add(filtered);
+        plusVagueHints().add(((Text) customNode.getFirstChild()).getLiteral());
       }
     }
     super.visit(customNode);

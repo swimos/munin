@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
+@Deprecated
 public final class Taxonomy {
 
   private static final Map<String, String[]> TAXONOMY = new HashMap<>(32000);

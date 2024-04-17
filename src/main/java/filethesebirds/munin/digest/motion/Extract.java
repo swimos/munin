@@ -60,4 +60,8 @@ public interface Extract {
 
   boolean isEmpty();
 
+  default boolean isImpure() {
+    return !hints().isEmpty() || !vagueHints().isEmpty();
+  }
+
 }

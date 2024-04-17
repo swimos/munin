@@ -15,16 +15,14 @@
 package filethesebirds.munin.swim;
 
 import filethesebirds.munin.Utils;
-import filethesebirds.munin.connect.ebird.EBirdApiException;
 import filethesebirds.munin.digest.Answer;
 import filethesebirds.munin.digest.Comment;
 import filethesebirds.munin.digest.Forms;
 import filethesebirds.munin.digest.Motion;
 import filethesebirds.munin.digest.Submission;
-import filethesebirds.munin.digest.Taxonomy;
+import filethesebirds.munin.digest.TaxResolve;
 import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.answer.Answers;
-import filethesebirds.munin.digest.motion.EBirdExtractPurify;
 import filethesebirds.munin.digest.motion.Extract;
 import filethesebirds.munin.digest.motion.ExtractParse;
 import filethesebirds.munin.digest.motion.Review;
@@ -32,8 +30,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import swim.concurrent.AbstractTask;
-import swim.concurrent.TaskRef;
 import swim.structure.Num;
 import swim.structure.Record;
 import swim.structure.Value;
@@ -79,7 +75,7 @@ final class SubmissionAgentLogic {
       return r.slot("taxa", Value.extant()).slot("commons", Value.extant()).slot("reviewers", Value.extant());
     } else {
       final Set<String> commons = a.taxa().stream()
-          .map(Taxonomy::commonName).filter(Objects::nonNull).collect(Collectors.toUnmodifiableSet());
+          .map(Shared.taxonomy()::commonName).filter(Objects::nonNull).collect(Collectors.toUnmodifiableSet());
       return r.slot("taxa", Forms.forSetString().mold(a.taxa()).toValue())
           .slot("commons", commons.isEmpty() ? Value.extant() : Forms.forSetString().mold(commons).toValue())
           .slot("reviewers", a.reviewers() == null || a.reviewers().isEmpty() ? Value.extant()
@@ -160,7 +156,7 @@ final class SubmissionAgentLogic {
     final Set<String> consolidatedTaxa = new HashSet<>();
     boolean didChange = false;
     for (String code : toPublishAnswer.taxa()) {
-      if (Taxonomy.containsCode(code)) {
+      if (Shared.taxonomy().containsCode(code)) {
         consolidatedTaxa.add(code);
       } else {
         Logic.warn(runtime, "throttleTimer", "Ignoring bad code " + code);
@@ -201,15 +197,20 @@ final class SubmissionAgentLogic {
       }
       return;
     }
-    final Extract extract = ExtractParse.parseComment(comment); // CPU-intensive, not I/O-bound
+    final Extract extract = ExtractParse.parseComment(Shared.taxonomy(), comment); // CPU-intensive, not I/O-bound
     if (extract.isEmpty()) {
       Logic.debug(runtime, lane, "Did not analyze unremarkable comment from " + comment.author());
-    } else if (extractIsImpure(extract)) {
-      Logic.debug(runtime, lane, "Will analyze hint-containing comment via PhasedPurifyTask");
-      // I/O-bound
-      final PhasedPurifyTask action = new PhasedPurifyTask(runtime, comment, extract);
-      if (!action.cue()) {
-        Logic.error(runtime, lane,"Failed to cue purification task for comment " + comment);
+    } else if (extract.isImpure()) {
+      Logic.debug(runtime, lane, "Will analyze hint-containing comment");
+      final Motion purified = purify(runtime, lane, Shared.taxonomy(), extract);
+      if ((purified instanceof Review) || !purified.isEmpty()) {
+        Logic.info(runtime, lane, "Purified extract into " + purified
+            + ", will update motions accordingly");
+        final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
+        runtime.motions.put(laneKey, purified);
+      } else {
+        Logic.warn(runtime, lane, "Purification of comment "
+            + comment + " unexpectedly yielded empty motion");
       }
     } else {
       final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
@@ -218,83 +219,33 @@ final class SubmissionAgentLogic {
     }
   }
 
-  private static boolean extractIsImpure(Extract extract) {
-    return !extract.hints().isEmpty() || !extract.vagueHints().isEmpty();
+  private static Motion purify(SubmissionAgent runtime, String lane, TaxResolve taxonomy, Extract extract) {
+    while (extract.isImpure()) {
+      extract = purifyOneHint(runtime, lane, taxonomy, extract);
+    }
+    return extract.base();
   }
 
-  private static class PhasedPurifyTask {
-
-    private static final int MAX_EXPLORABLE_HINTS = 10;
-    private static final int MAX_FAILURES = 5;
-
-    private volatile Extract soFar;
-    private volatile int hintsSoFar;
-    private volatile int failures;
-    private final TaskRef task;
-
-    PhasedPurifyTask(SubmissionAgent runtime, Comment comment, Extract soFar) {
-      this.soFar = soFar;
-      this.hintsSoFar = 0;
-      this.task = runtime.asyncStage().task(new AbstractTask() {
-
-        @Override
-        public void runTask() {
-          while (!isComplete()) {
-            try {
-              setSoFar(EBirdExtractPurify.purifyOneHint(Shared.eBirdClient(), getSoFar()));
-              PhasedPurifyTask.this.hintsSoFar++;
-            } catch (EBirdApiException e) {
-              if (++failures <= MAX_FAILURES) {
-                Logic.warn(runtime, "[PhasedPurifyTask]",
-                    "Exception in processing hint for comment " + comment + ", retrying in ~1 min");
-                runtime.setTimer(60000L + (long) (Math.random() * 30000) - 15000L,
-                    PhasedPurifyTask.this.task::cue);
-              } else {
-                Logic.error(runtime, "[PhasedPurifyTask]",
-                    "Exception in processing hint for comment " + comment + ", aborting");
-                runtime.didFail(e);
-              }
-              return;
-            }
-          }
-          // On success
-          final Motion purified = getSoFar().base();
-          if ((purified instanceof Review) || !purified.isEmpty()) {
-            Logic.info(runtime, "[PhasedPurifyTask]", "Purified extract into " + purified
-                + ", will update motions accordingly");
-            final Value laneKey = Record.create(2).item(comment.createdUtc()).item(comment.id());
-            runtime.motions.put(laneKey, purified);
-          } else {
-            Logic.warn(runtime, "[PhasedPurifyTask]", "Purification of comment "
-                + comment + " unexpectedly yielded empty motion");
-          }
-        }
-
-        @Override
-        public boolean taskWillBlock() {
-          return true;
-        }
-
-      });
+  private static Extract purifyOneHint(SubmissionAgent runtime, String lane, TaxResolve taxonomy, Extract extract) {
+    if (!extract.hints().isEmpty()) {
+      final String hint = extract.hints().stream().findAny().get();
+      final String code = taxonomy.resolve(hint);
+      if ("".equals(code)) {
+        Logic.warn(runtime, lane, "Could not resolve hint=" + hint);
+        return extract.purifyHint(hint, null);
+      } else {
+        return extract.purifyHint(hint, code);
+      }
+    } else {
+      final String hint = extract.vagueHints().stream().findAny().get();
+      final String code = taxonomy.resolve(hint);
+      if ("".equals(code)) {
+        Logic.warn(runtime, lane, "Could not resolve hint=" + hint);
+        return extract.purifyVagueHint(hint, null);
+      } else {
+        return extract.purifyVagueHint(hint, code);
+      }
     }
-
-    private Extract getSoFar() {
-      return this.soFar;
-    }
-
-    private void setSoFar(Extract extract) {
-      this.soFar = extract;
-    }
-
-    private boolean isComplete() {
-      return this.hintsSoFar >= MAX_EXPLORABLE_HINTS
-          || EBirdExtractPurify.extractIsPurified(this.soFar);
-    }
-
-    boolean cue() {
-      return this.task.cue();
-    }
-
   }
 
 }

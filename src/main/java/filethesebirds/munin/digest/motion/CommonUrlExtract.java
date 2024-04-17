@@ -14,6 +14,7 @@
 
 package filethesebirds.munin.digest.motion;
 
+import filethesebirds.munin.digest.TaxResolve;
 import filethesebirds.munin.digest.Taxonomy;
 import java.util.Locale;
 import java.util.Set;
@@ -49,7 +50,7 @@ class CommonUrlExtract {
     return false;
   }
 
-  private static boolean forEbird(UriPath path, Set<String> taxa) {
+  private static boolean forEbird(TaxResolve taxonomy, UriPath path, Set<String> taxa) {
     final String prefix = "/species/";
     final String pathStr = path.toString().toLowerCase(Locale.ROOT);
     if (pathStr.startsWith(prefix)) {
@@ -62,7 +63,7 @@ class CommonUrlExtract {
         }
       }
       final String trimmedTail = tail.substring(0, tailLength);
-      if (Taxonomy.containsCode(trimmedTail)) {
+      if (taxonomy.containsCode(trimmedTail)) {
         taxa.add(trimmedTail);
         return true;
       }
@@ -74,11 +75,11 @@ class CommonUrlExtract {
     return false;
   }
 
-  private static boolean forMediaEbird(UriPath path, UriQuery query, Set<String> taxa) {
+  private static boolean forMediaEbird(TaxResolve taxonomy, UriPath path, UriQuery query, Set<String> taxa) {
     final String pathStr = path.toString().toLowerCase(Locale.ROOT);
     if (pathStr.startsWith("/catalog")) {
       final String code = query.get("taxonCode");
-      if (Taxonomy.containsCode(code)) {
+      if (taxonomy.containsCode(code)) {
         taxa.add(code);
         return true;
       }
@@ -90,7 +91,7 @@ class CommonUrlExtract {
     return false;
   }
 
-  static boolean extractFromUri(Uri uri, Set<String> taxa, Set<String> hints) {
+  static boolean extractFromUri(TaxResolve taxonomy, Uri uri, Set<String> taxa, Set<String> hints) {
     final String extractedHostName = uri.hostName();
     if (extractedHostName == null) {
       return false;
@@ -99,9 +100,9 @@ class CommonUrlExtract {
     if (hostName.endsWith("allaboutbirds.org")) {
       return forAllAboutBirds(uri.path(), hints);
     } else if (hostName.endsWith("media.ebird.org") || hostName.endsWith("search.macaulaylibrary.org")) {
-      return forMediaEbird(uri.path(), uri.query(), taxa);
+      return forMediaEbird(taxonomy, uri.path(), uri.query(), taxa);
     } else if (hostName.endsWith("ebird.org")) { // don't reorder
-      return forEbird(uri.path(), taxa);
+      return forEbird(taxonomy, uri.path(), taxa);
     }
     return false;
   }

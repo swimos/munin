@@ -32,7 +32,7 @@ public class TaxResolve {
   final Localed us;
   final Localed uk;
 
-  TaxResolve() {
+  public TaxResolve() {
     this.taxonomy = loadTaxonomy();
     this.us = new Localed("taxonomy/2023-us.csv");
     this.uk = new Localed("taxonomy/2023-uk.csv");

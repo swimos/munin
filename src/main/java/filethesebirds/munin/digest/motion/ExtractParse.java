@@ -15,6 +15,7 @@
 package filethesebirds.munin.digest.motion;
 
 import filethesebirds.munin.digest.Comment;
+import filethesebirds.munin.digest.TaxResolve;
 import filethesebirds.munin.digest.Taxonomy;
 import filethesebirds.munin.digest.Users;
 import filethesebirds.munin.digest.motion.commonmark.HintExtension;
@@ -44,7 +45,7 @@ public class ExtractParse {
     return n;
   }
 
-  private static int fastPathTaxa(String body, int maxCommandLen, Set<String> taxa) {
+  private static int fastPathTaxa(TaxResolve taxonomy, String body, int maxCommandLen, Set<String> taxa) {
     final int commandLength = commandLength(body, Math.min(body.length(), maxCommandLen + 1));
     // Suspect user error for excessively long commands
     if (commandLength > maxCommandLen) {
@@ -53,7 +54,7 @@ public class ExtractParse {
     final String[] split = body.substring(0, commandLength).split("(\\s|,)+");
     int added = 0;
     for (int i = 1; i < split.length; i++) {
-      if (Taxonomy.containsCode(split[i])) {
+      if (taxonomy.containsCode(split[i])) {
         taxa.add(split[i]);
         added++;
       }
@@ -71,18 +72,19 @@ public class ExtractParse {
     return seek < 0 ? 0 : seekToCommand(body, seek + 1);
   }
 
-  private static Extract parse(String body, int maxCommandLen,
+  private static Extract parse(TaxResolve taxonomy,
+                               String body, int maxCommandLen,
                                BiFunction<Set<String>, Integer, Extract> plusGenerator,
                                BiFunction<Set<String>, Integer, Extract> overrideGenerator,
                                Extract empty, Function<ExtractingVisitor, Extract> slowGenerator) {
     final int seek = seekToCommand(body, 0);
     if (seek > 0) {
       final Set<String> delta = new HashSet<>();
-      final int taxa = fastPathTaxa(body.substring(seek - 1), maxCommandLen, delta);
+      final int taxa = fastPathTaxa(taxonomy, body.substring(seek - 1), maxCommandLen, delta);
       return plusGenerator.apply(delta, taxa);
     } else if (seek < 0) {
       final Set<String> delta = new HashSet<>();
-      final int taxa = fastPathTaxa(body.substring(-(seek + 1)), maxCommandLen, delta);
+      final int taxa = fastPathTaxa(taxonomy, body.substring(-(seek + 1)), maxCommandLen, delta);
       return overrideGenerator.apply(delta, taxa);
     }
     // fast-path: no URLs present, and not enough + signs to generate hints
@@ -93,21 +95,21 @@ public class ExtractParse {
       }
     }
     // slow path
-    final ExtractingVisitor visitor = new ExtractingVisitor();
+    final ExtractingVisitor visitor = new ExtractingVisitor(taxonomy);
     PARSER.parse(body).accept(visitor);
     return slowGenerator.apply(visitor);
   }
 
-  public static Extract parseSuggestionBased(String body) {
-    return parse(body, 256,
+  public static Extract parseSuggestionBased(TaxResolve taxonomy, String body) {
+    return parse(taxonomy, body, 256,
         (d, i) -> ImmutableExtract.create(ImmutableSuggestion.plus(d), null, null),
         (d, i) -> ImmutableExtract.create(ImmutableSuggestion.override(d), null, null),
         ImmutableExtract.create(ImmutableSuggestion.empty(), null, null),
         v -> ImmutableExtract.create(ImmutableSuggestion.plus(v.plusTaxa()), v.plusHints(), v.plusVagueHints()));
   }
 
-  public static Extract parseReviewBased(String reviewer, String body) {
-    return parse(body, 512,
+  public static Extract parseReviewBased(TaxResolve taxonomy, String reviewer, String body) {
+    return parse(taxonomy, body, 512,
         (d, i) -> i > 0
             ? ImmutableExtract.create(ImmutableReview.plus(reviewer, d), null, null)
             // Reviewer !addTaxa with errors is an empty suggestion, not an empty review
@@ -120,16 +122,16 @@ public class ExtractParse {
         v -> ImmutableExtract.create(ImmutableReview.plus(reviewer, v.plusTaxa()), v.plusHints(), v.plusVagueHints()));
   }
 
-  public static Extract parseComment(Comment comment) {
+  public static Extract parseComment(TaxResolve taxonomy, Comment comment) {
     if (Users.userIsNonparticipant(comment.author())
         || comment.body().contains("!np")) {
       return ImmutableExtract.empty();
     }
     if (Users.userIsReviewer(comment.author())
         && !comment.body().contains("!nr")) {
-      return parseReviewBased(comment.author(), unescapedBody(comment));
+      return parseReviewBased(taxonomy, comment.author(), unescapedBody(comment));
     }
-    return parseSuggestionBased(unescapedBody(comment));
+    return parseSuggestionBased(taxonomy, unescapedBody(comment));
   }
 
   private static String unescapedBody(Comment comment) {

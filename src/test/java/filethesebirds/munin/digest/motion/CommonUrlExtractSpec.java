@@ -1,5 +1,6 @@
 package filethesebirds.munin.digest.motion;
 
+import filethesebirds.munin.digest.TaxResolve;
 import java.util.HashSet;
 import java.util.Set;
 import org.testng.annotations.Test;
@@ -9,8 +10,10 @@ import static org.testng.Assert.assertTrue;
 
 public class CommonUrlExtractSpec {
 
+  private static final TaxResolve TAXONOMY = new TaxResolve();
+
   private static boolean extract(String url, Set<String> taxa, Set<String> hints) {
-    return CommonUrlExtract.extractFromUri(Uri.parse(url), taxa, hints);
+    return CommonUrlExtract.extractFromUri(TAXONOMY, Uri.parse(url), taxa, hints);
   }
 
   @Test
