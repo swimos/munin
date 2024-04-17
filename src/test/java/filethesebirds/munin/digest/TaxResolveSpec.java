@@ -74,12 +74,15 @@ public class TaxResolveSpec {
     assertEquals(TR.resolve("brent"), "brant");
     assertEquals(TR.resolve("Non-avian"), "nonavian");
     assertEquals(TR.resolve("nonavian"), "nonavian");
+    assertEquals(TR.resolve("calurus red-tailed"), "wrthaw1");
 
     assertEquals(TR.resolve("turdus migratorius"), "amerob");
     assertEquals(TR.resolve("setophaga coronata x auduboni"), "yerwar3");
     assertEquals(TR.resolve("anser anser"), "gragoo");
     assertEquals(TR.resolve("anser anser (anser)"), "gragoo2");
-    assertEquals(TR.resolve("calurus red-tailed"), "wrthaw1");
+    assertEquals(TR.resolve("buteo jamaicensis calurus"), "wrthaw1");
+    assertEquals(TR.resolve("buteo jamaicensis calurus/abieticola"), "rethaw9");
+    assertEquals(TR.resolve("buteo jamaicensis abieticola"), "rethaw4");
   }
 
 }

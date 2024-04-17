@@ -186,11 +186,20 @@ public class TaxResolve {
 
   String resolveHasSlash(String simplified) {
     // TODO: species, hybrid, intergrade?
-    final Match common = resolve(
+    final Match commonSlash = resolve(
         () -> this.us.resolveSlash(simplified),
         () -> this.uk.resolveSlash(simplified));
-    return common.score > 0 ? common.code
-        : resolve(() -> this.sci.resolveSlash(simplified)).code;
+    if (commonSlash.score > 0) {
+      return commonSlash.code;
+    }
+    final Match commonSsp = resolve(
+        () -> this.us.resolveSubspecies(simplified),
+        () -> this.uk.resolveSubspecies(simplified));
+    return commonSsp.score > 0 ? commonSsp.code
+        : resolve(
+            () -> this.sci.resolveSlash(simplified),
+            () -> this.sci.resolveSubspecies(simplified))
+        .code;
   }
 
   String resolveHasSp(String simplified) {
