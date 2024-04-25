@@ -102,8 +102,8 @@ public class TaxResolve {
     String simplified = simplifySanitizedQuery(sanitized);
     if (sanitized.contains("hybrid")) {
       return resolveHasHybrid(simplified);
-    } else if (sanitized.contains("domestic") || query.contains("feral")) {
-      return resolveHasDomestic(simplified);
+    } else if (sanitized.contains("domestic") || sanitized.contains("feral")) {
+      return resolveHasDomestic(sanitized, simplified);
     } else if (sanitized.contains("intergrade") || sanitized.contains("integrade")) {
       return resolveHasIntergrade(simplified);
     } else if (sanitized.contains("/")) {
@@ -136,11 +136,12 @@ public class TaxResolve {
     return sb.toString();
   }
 
-  static String simplifySanitizedQuery(String sanitized) {
-    // TODO: ed, ing
+  private static String simplifySanitizedQuery(String sanitized) {
+    return purgeDomestic(simplifyKeepDomestic(sanitized));
+  }
+  private static String simplifyKeepDomestic(String sanitized) {
     return sanitized.replaceAll("conure", "parakeet")
         .replaceAll("feral", "")
-        .replace(sanitized.contains("goose") ? "" : "domestic", "")
         .replaceAll("intergrade", "")
         .replaceAll("integrade", "")
         .replaceAll("\\bsubsp", "") // FIXME: this doesn't look right
@@ -159,6 +160,10 @@ public class TaxResolve {
         .replaceAll("s\\b", "");
   }
 
+  private static String purgeDomestic(String intermediate) {
+    return intermediate.replace("domestic", "");
+  }
+
   String resolveHasHybrid(String simplified) {
     // TODO: intergrade?
     final Match common = resolve(
@@ -168,12 +173,23 @@ public class TaxResolve {
         : resolve(() -> this.sci.resolveHybrid(simplified)).code;
   }
 //
-  String resolveHasDomestic(String simplified) {
-    final Match common = resolve(
-        () -> this.us.resolveDomestic(simplified),
-        () -> this.uk.resolveDomestic(simplified));
-    return common.score > 0 ? common.code
-        : resolve(() -> this.sci.resolveDomestic(simplified)).code;
+  String resolveHasDomestic(String sanitized, String simplified) {
+    if (sanitized.contains("hybrid") || sanitized.contains(" x ")) {
+      final String hack = simplifyKeepDomestic(sanitized);
+      final Match common = resolve(
+          () -> this.us.resolveHybrid(hack),
+          () -> this.uk.resolveHybrid(hack),
+          () -> this.us.resolveHybrid(simplified),
+          () -> this.uk.resolveHybrid(simplified));
+      return common.score > 0 ? common.code
+          : resolve(() -> this.sci.resolveHybrid(hack), () -> this.sci.resolveHybrid(simplified)).code;
+    } else {
+      final Match common = resolve(
+          () -> this.us.resolveDomestic(simplified),
+          () -> this.uk.resolveDomestic(simplified));
+      return common.score > 0 ? common.code
+          : resolve(() -> this.sci.resolveDomestic(simplified)).code;
+    }
   }
 
   String resolveHasIntergrade(String simplified) {
@@ -354,6 +370,7 @@ public class TaxResolve {
           .replaceAll("domestic type", "")
           .replaceAll(" x ", " ")
           .replaceAll("hybrid", "")
+          .trim()
           .split("[^a-zA-Z.]+"));
     }
 

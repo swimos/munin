@@ -61,6 +61,7 @@ public class TaxResolveSpec {
     assertEquals(TR.resolve("domestic chicken"), "redjun1");
     assertEquals(TR.resolve("Blue-winged Golden-winged hybrid"), "x00669");
     assertEquals(TR.resolve("domestic  feral   pigeon"), "rocpig1");
+    assertEquals(TR.resolve("Feral pigeon"), "rocpig1");
     assertEquals(TR.resolve("domestic  muscovy"), "musduc3");
     assertEquals(TR.resolve("integrade northern flicker"), "rxyfli");
     assertEquals(TR.resolve("long-billed/short-billed dowitcher"), "dowitc");
@@ -75,6 +76,8 @@ public class TaxResolveSpec {
     assertEquals(TR.resolve("Non-avian"), "nonavian");
     assertEquals(TR.resolve("nonavian"), "nonavian");
     assertEquals(TR.resolve("calurus red-tailed"), "wrthaw1");
+    assertEquals(TR.resolve("domestic x canada"), "x00759");
+    assertEquals(TR.resolve("Swan Goose (domestic)"), "swagoo2");
 
     assertEquals(TR.resolve("turdus migratorius"), "amerob");
     assertEquals(TR.resolve("setophaga coronata x auduboni"), "yerwar3");
