@@ -72,7 +72,9 @@ public final class Publication {
       return null;
     }
     final String reviewers = publishableReviewers(ans.reviewers());
-    return "Added taxa: " + taxa
+    return "Added "
+        + ((ans.taxa().size() > 1) ? "taxa" : "taxon")
+        + ": " + taxa
         + ((reviewers == null) ? "" : ("\n\nReviewed by: " + reviewers))
         + "\n\n^(I catalog submissions to this subreddit.) "
         + "[^(Recent uncatalogued submissions)](https://munin.swim.services/submissions?lane=api/unanswered)^( | )"
