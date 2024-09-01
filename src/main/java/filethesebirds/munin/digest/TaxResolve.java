@@ -93,12 +93,12 @@ public class TaxResolve {
   }
 
   public String resolve(String query) {
-    if (query.contains("chicken") && !query.contains("prairie")) {
+    String sanitized = sanitizeQuery(query);
+    if (sanitized.contains("chicken") && !sanitized.contains("prairie")) {
       return "redjun1";
-    } else if (query.contains("nonavian")) {
+    } else if (sanitized.contains("nonavian")) {
       return "nonavian";
     }
-    String sanitized = sanitizeQuery(query);
     String simplified = simplifySanitizedQuery(sanitized);
     if (sanitized.contains("hybrid")) {
       return resolveHasHybrid(simplified);
@@ -141,6 +141,8 @@ public class TaxResolve {
   }
   private static String simplifyKeepDomestic(String sanitized) {
     return sanitized.replaceAll("conure", "parakeet")
+        .replace("grey", "gray")
+        .replace("colour", "color")
         .replaceAll("feral", "")
         .replaceAll("intergrade", "")
         .replaceAll("integrade", "")
@@ -174,6 +176,10 @@ public class TaxResolve {
   }
 //
   String resolveHasDomestic(String sanitized, String simplified) {
+    if (sanitized.contains("goose") && !sanitized.contains("lag") && !sanitized.contains("swan")
+        && !sanitized.contains("cana")) {
+      return "domgoo1";
+    }
     if (sanitized.contains("hybrid") || sanitized.contains(" x ")) {
       final String hack = simplifyKeepDomestic(sanitized);
       final Match common = resolve(
@@ -359,7 +365,7 @@ public class TaxResolve {
       }
     }
 
-    private static List<String> tokenizeCom(String com) {
+    static List<String> tokenizeCom(String com) {
       com = com.toLowerCase(Locale.ROOT);
       com = replaceDiacritics(com);
       com = truncateCommonPrefixes(com);
@@ -381,11 +387,11 @@ public class TaxResolve {
     Match resolveDomestic(String query) {
       return resolve(this.domesticCom, query);
     }
-//
+
     Match resolveHybrid(String query) {
       return resolve(this.hybridCom, query);
     }
-//
+
     Match resolveSubspecies(String query) {
       return resolve(this.subspeciesCom, query);
     }
